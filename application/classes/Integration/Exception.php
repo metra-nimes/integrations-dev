@@ -79,34 +79,4 @@ class Integration_Exception extends Exception {
 		return ($this->field !== NULL) ? $this->field : $default;
 	}
 
-
-	/**
-	 * @param Model_Integration $integration
-	 * @param array $errors
-	 */
-	public static function retry(Model_Integration $integration, $errors = array(INT_E_WRONG_CREDENTIALS, INT_E_ACCOUNT_BLOCKED, INT_E_ACCOUNT_LIMITATION))
-	{
-		$interrors = DB::select('id')
-			->from('interrors')
-			->where('integration_id', '=', $integration->id)
-			->and_where('err_code', 'IN', $errors)
-			->execute()
-			->as_array('id', 'id');
-
-		if ( ! empty($interrors))
-		{
-			// Set next retry to now
-			DB::update('interrors')
-				->set(array('next_retry' => date('Y-m-d H:i:s')))
-				->where('id', 'IN', array_values($interrors))
-				->execute();
-
-			DB::update('notifications')
-				->set(array('closed' => 1))
-				->where('type', '=', 'integration')
-				->and_where('receiver_id', '=', $integration->owner_id)
-				->execute();
-		}
-	}
-
 }
