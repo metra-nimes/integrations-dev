@@ -1,0 +1,7 @@
+<phpunit bootstrap="bootstrap.php">
+    <testsuites>
+        <testsuite name="autotests">
+            <file>Integration/Driver/MailChimpTest.php</file>
+        </testsuite>
+    </testsuites>
+</phpunit>

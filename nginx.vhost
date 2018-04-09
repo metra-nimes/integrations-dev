@@ -1,0 +1,19 @@
+server {
+    listen 80;
+    server_name integrations.convertful.local;
+    # Must me a symlink to actual application www
+    root /home/soulwest/PhpstormProjects/integrations-dev/public/;
+    error_log /home/soulwest/PhpstormProjects/integrations-dev/application/logs/error.log notice;
+    index index.php;
+    client_max_body_size 2m;
+    location / {
+        try_files $uri /index.php?$query_string;
+        # Required for compatibility with Virualbox
+        sendfile off;
+    }
+    location = /index.php {
+        include fastcgi.conf;
+        fastcgi_pass unix:/run/php/php7.0-fpm.sock;
+        fastcgi_index index.php;
+    }
+}

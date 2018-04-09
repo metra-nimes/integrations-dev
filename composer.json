@@ -1,0 +1,10 @@
+{
+    "name": "convertful/integrations-dev",
+    "description": "This is a convertful server for intagrations",
+    "version": "0.0.0",
+    "license": "proprietary",
+	"require": {
+		"koseven/koseven": "3.3.7"
+	}
+}
+

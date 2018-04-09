@@ -1,0 +1,328 @@
+html {
+  overflow-y: scroll;
+}
+body {
+  display: -webkit-box;
+  display: flex;
+  -webkit-box-orient: horizontal;
+  -webkit-box-direction: normal;
+          flex-direction: row;
+  min-height: 100%;
+}
+.inttests {
+  display: -webkit-box;
+  display: flex;
+  -webkit-box-flex: 1;
+          flex-grow: 1;
+  padding-left: 440px;
+  width: 100%;
+}
+.inttests h2 {
+  margin: 0;
+  padding: 10px 20px;
+  background: #f5f7f8;
+  font-weight: bold;
+  font-size: 18px;
+}
+.inttests textarea {
+  display: block;
+}
+.inttests-sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  width: 440px;
+  height: 100%;
+  overflow: hidden;
+  overflow-y: scroll;
+  background: #fff;
+  box-shadow: 3px 0 20px rgba(54, 59, 65, 0.1);
+}
+.inttests-sidebar .cof-form-row.type_formfields {
+  max-width: 400px;
+}
+.inttests-sidebar .cof-integrations-item {
+  box-shadow: none;
+  margin: 0;
+}
+.inttests-sidebar .cof-integrations-item-content {
+  padding: 5px 20px 20px;
+}
+.inttests-sidebar .cof-integrations-credentials-textarea {
+  display: none;
+}
+.inttests-content {
+  padding: 20px;
+  width: 100%;
+  font-size: 14px;
+}
+.inttests-content h2 {
+  margin: 0 -20px 20px;
+}
+.inttests-content > h2:first-child {
+  margin-top: -20px;
+}
+.inttests-content p {
+  margin: 0 0 10px;
+}
+.inttests-content pre {
+  margin: 0 0 10px;
+  min-height: 0;
+  background: transparent;
+}
+.inttests-logs-item {
+  margin: 0 0 10px;
+  border: 1px solid #e4e8eb;
+  box-shadow: 0 0 3px 0 rgba(0, 0, 0, 0.1);
+}
+.inttests-logs-item-title {
+  position: relative;
+  cursor: pointer;
+  padding: 0 0.6rem;
+  line-height: 40px;
+}
+.inttests-logs-item-title::after {
+  content: '\f078';
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  width: 38px;
+  height: 38px;
+  background: #fff;
+  text-align: center;
+  line-height: 38px;
+  font-size: 12px;
+  font-family: FontAwesome;
+}
+.is-active > .inttests-logs-item-title::after {
+  content: '\f077';
+}
+.is-error > .inttests-logs-item-title input {
+  color: #ea524a !important;
+}
+.inttests-logs-item-content {
+  display: none;
+  padding: 20px 20px 0;
+  border-top: 1px solid #e4e8eb;
+}
+.is-active > .inttests-logs-item-content {
+  display: block;
+}
+.inttests-response-success {
+  position: relative;
+  margin: 0 0 20px;
+  padding: 10px;
+  color: #00F;
+  font-size: 18px;
+}
+.inttests-response-success::before {
+  content: "\f00c";
+  padding-right: 5px;
+  font-family: FontAwesome;
+  font-size: 20px;
+}
+.inttests-response-error {
+  position: relative;
+  margin: 0 0 20px;
+  padding: 10px;
+  color: #F00;
+  font-size: 18px;
+}
+.inttests-response-error::before {
+  content: "\f00d";
+  padding-right: 5px;
+  font-family: FontAwesome;
+  font-size: 20px;
+}
+.inttests-form {
+  position: relative;
+}
+.inttests-form-add {
+  position: absolute;
+  top: 5px;
+  right: 20px;
+  width: 35px;
+  height: 35px;
+  background: #666;
+  border-radius: 0.3em;
+  text-align: center;
+  line-height: 35px;
+  font-family: FontAwesome;
+  color: #fff;
+  cursor: pointer;
+}
+.inttests-form-add::before {
+  content: "\f067";
+}
+.inttests-form-add.is-active + .inttests-form-addlist {
+  display: block;
+}
+.inttests-form-add.is-active + .inttests-form-addlist + .driver-controls-fields {
+  display: none;
+}
+.inttests-form-add.is-active::before {
+  content: "\f00d";
+}
+.inttests-form-addlist {
+  display: none;
+  padding: 20px 110px 20px 20px;
+  position: relative;
+}
+.inttests-form-addlist-select {
+  position: relative;
+}
+.inttests-form-addlist-select select {
+  display: block;
+  padding-right: 40px;
+  -webkit-appearance: none;
+     -moz-appearance: none;
+          appearance: none;
+}
+.inttests-form-addlist-select select::-ms-expand {
+  opacity: 0;
+}
+.inttests-form-addlist-select::after {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 40px;
+  line-height: 40px;
+  text-align: center;
+  content: '\f0d7';
+  font-family: FontAwesome;
+  pointer-events: none;
+}
+.inttests-form-addlist-button {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 80px;
+  height: 40px;
+  background: #666;
+  border-radius: 0.3em;
+  text-align: center;
+  line-height: 40px;
+  color: #fff;
+  cursor: pointer;
+}
+.driver-controls input[type="submit"] {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  background: #666;
+  text-align: center;
+  color: #fff;
+  -webkit-box-flex: 1;
+          flex-grow: 1;
+  border-radius: 0.3em;
+  cursor: pointer;
+}
+.driver-controls-request-h {
+  padding: 20px;
+}
+.driver-controls-fields-buttons {
+  display: -webkit-box;
+  display: flex;
+  padding: 10px;
+}
+.conv-form-field {
+  position: relative;
+  margin: 20px;
+}
+.conv-form-field-input {
+  padding-right: 50px;
+}
+.conv-form-field-remove {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 40px;
+  height: 40px;
+  background: #666;
+  border-radius: 0.3em;
+  text-align: center;
+  line-height: 40px;
+  font-family: FontAwesome;
+  color: #fff;
+  cursor: pointer;
+}
+.conv-form-field-remove::before {
+  content: "\f00d";
+}
+.conv-form-field.for_email .conv-form-field-input {
+  padding-right: 0;
+}
+.conv-form-field.for_email .conv-form-field-remove {
+  display: none;
+}
+.conv-form-field.conv_error .conv-form-field-message {
+  color: #ea524a;
+  font-weight: bold;
+}
+.conv-btn {
+  margin: 0 20px;
+  text-align: center;
+  border-radius: 0.3em !important;
+  cursor: pointer;
+}
+.driver-controls-fields-button {
+  margin: 10px;
+  padding: 5px 0;
+  background: #666;
+  text-align: center;
+  color: #fff;
+  -webkit-box-flex: 1;
+          flex-grow: 1;
+  border-radius: 0.3em;
+  cursor: pointer;
+}
+.driver-controls-fields {
+  position: relative;
+}
+textarea,
+pre {
+  box-sizing: border-box;
+  font-family: Consolas, monospace;
+  font-size: 14px;
+  background-color: #ffffff;
+  color: #000000;
+  border: 1px #2c3e54 solid;
+  width: 100%;
+  padding: 10px;
+  min-height: 150px;
+  resize: vertical;
+}
+.submit input[type="text"] {
+  box-sizing: border-box;
+  font-family: Consolas, monospace;
+  font-size: 14px;
+  background-color: #ffffff;
+  border: 1px #2c3e54 solid;
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 10px;
+}
+.driver-controls-request {
+  position: relative;
+}
+@-webkit-keyframes highlight {
+  0% {
+    background: #89ffaa;
+  }
+  100% {
+    background: none;
+  }
+}
+@keyframes highlight {
+  0% {
+    background: #89ffaa;
+  }
+  100% {
+    background: none;
+  }
+}
+.highlight {
+  -webkit-animation: highlight 500ms;
+          animation: highlight 500ms;
+}
