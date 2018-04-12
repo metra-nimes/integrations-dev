@@ -140,6 +140,7 @@ class Controller_API extends Controller {
 		}
 		catch (HTTP_Exception $e)
 		{
+			var_dump($e);
 			$this->after();
 		}
 
