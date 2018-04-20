@@ -2,6 +2,7 @@
     <testsuites>
         <testsuite name="autotests">
             <file>Integration/Driver/MailChimpTest.php</file>
+            <file>Integration/Driver/HubSpotTest.php</file>
         </testsuite>
     </testsuites>
 </phpunit>
