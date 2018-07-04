@@ -47,10 +47,10 @@ class Integration_Response {
 			{
 				$format = 'json';
 			}
-			elseif (strtok($this->headers['Content-Type'], ';') == 'application/vnd.api+json')
-			{
-				$format = 'json';
-			}
+            elseif (strtok($this->headers['Content-Type'], ';') == 'application/vnd.api+json')
+            {
+                $format = 'json';
+            }
 			elseif (strtok($this->headers['Content-Type'], ';') == 'application/xml')
 			{
 				$format = 'xml';

@@ -29,7 +29,7 @@ abstract class Integration_DriverOauthTest extends Integration_DriverTest {
 	public static function setUpBeforeClass()
 	{
 		$class_name = preg_replace('~^.*?([a-zA-Z0-9]+)Test$~', '$1', get_called_class());
-		static::$credentials_filename = Kohana::find_file('tests/data', $class_name, 'json');
+		static::$credentials_filename = Kohana::find_file('../tests/data', $class_name, 'json');
 
 		if (static::$credentials_filename)
 		{
