@@ -5,8 +5,8 @@ server {
 
     # Must be a symlink to actual application public
     root /var/www/integrations-dev/public/;
-    ssl_certificate /var/www//integrations-dev/integrations.convertful.local.crt;
-    ssl_certificate_key /var/www//integrations-dev/integrations.convertful.local.key;
+    #ssl_certificate /var/www//integrations-dev/integrations.convertful.local.crt;
+    #ssl_certificate_key /var/www//integrations-dev/integrations.convertful.local.key;
     error_log /var/www/integrations-dev/application/logs/error.log notice;
 
     index index.php;
