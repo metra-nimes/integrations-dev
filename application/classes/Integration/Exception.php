@@ -7,6 +7,7 @@ const INT_E_ACCOUNT_LIMITATION = 20;
 const INT_E_WRONG_PARAMS = 21;
 const INT_E_WRONG_DATA = 22;
 const INT_E_PLAN_LIMITATION = 23;
+const INT_E_EMAIL_LIMITATION = 24;
 const INT_E_EMAIL_DUPLICATE = 30;
 const INT_E_NOT_REACHABLE = 40;
 const INT_E_SERVER_NOT_AVAILABLE = 41;
@@ -35,6 +36,7 @@ class Integration_Exception extends Exception {
 		INT_E_WRONG_PARAMS => 'Wrong parameters for account',
 		INT_E_WRONG_DATA => 'Wrong form data',
 		INT_E_PLAN_LIMITATION => 'Reach plan limits',
+		INT_E_EMAIL_LIMITATION => 'Reach email limits',
 		// 3x: Duplicate
 		INT_E_EMAIL_DUPLICATE => 'Email duplicate',
 		// 4x: Temporary Errors
@@ -77,6 +79,36 @@ class Integration_Exception extends Exception {
 	public function getField($default = NULL)
 	{
 		return ($this->field !== NULL) ? $this->field : $default;
+	}
+
+
+	/**
+	 * @param Model_Integration $integration
+	 * @param array $error_codes
+	 */
+	public static function retry(Model_Integration $integration, $error_codes = array(INT_E_WRONG_CREDENTIALS, INT_E_ACCOUNT_BLOCKED, INT_E_ACCOUNT_LIMITATION))
+	{
+		$interrors = DB::select('id')
+			->from('interrors')
+			->where('integration_id', '=', $integration->id)
+			->and_where('err_code', 'IN', $error_codes)
+			->execute()
+			->as_array('id', 'id');
+
+		if ( ! empty($interrors))
+		{
+			// Set next retry to now
+			DB::update('interrors')
+				->set(array('next_retry' => date('Y-m-d H:i:s')))
+				->where('id', 'IN', array_values($interrors))
+				->execute();
+		}
+
+		DB::update('notifications')
+			->set(array('closed' => 1))
+			->where('type', '=', 'integration')
+			->and_where('receiver_id', '=', $integration->owner_id)
+			->execute();
 	}
 
 }

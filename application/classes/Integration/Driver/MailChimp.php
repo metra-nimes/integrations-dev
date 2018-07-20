@@ -10,6 +10,10 @@
  */
 class Integration_Driver_MailChimp extends Integration_Driver implements Integration_Interface_BackendESP {
 
+	protected static $company_name = 'Rocket Science Group LLC d/b/a MailChimp';
+	protected static $company_address = '675 Ponce de Leon Ave NE, Suite 5000, Atlanta, GA 30308 USA';
+	protected static $company_url = 'https://mailchimp.com/';
+
 	public function describe_credentials_fields($refresh = FALSE)
 	{
 		return array(
@@ -23,7 +27,7 @@ class Integration_Driver_MailChimp extends Integration_Driver implements Integra
 			),
 			'api_key' => array(
 				'title' => 'Account API Key',
-				'description' => 'You can <a href="/docs/integrations/mailchimp/#step-2-get-your-mailchimp-api-key" target="_blank">read here</a> where to obtain this code.',
+				'description' => '<a href="/docs/integrations/mailchimp/#step-2-get-your-mailchimp-api-key" target="_blank">Read where to obtain this code</a>',
 				'type' => 'key',
 				'rules' => array(
 					array('not_empty'),
@@ -51,7 +55,7 @@ class Integration_Driver_MailChimp extends Integration_Driver implements Integra
 	public function fetch_meta()
 	{
 		$this->meta = array(
-			'lists' => array(),
+			'lists' => [],
 		);
 		// Getting available lists
 		// http://developer.mailchimp.com/documentation/mailchimp/reference/lists/#read-get_lists
@@ -90,18 +94,18 @@ class Integration_Driver_MailChimp extends Integration_Driver implements Integra
 				throw new Integration_Exception(INT_E_WRONG_REQUEST, 'api_key');
 			}
 		}
-		foreach ($r->get('lists', array()) as $list)
+		foreach ($r->get('lists', []) as $list)
 		{
 			$this->meta['lists'][Arr::get($list, 'id', '')] = Arr::get($list, 'name', '');
 		}
-		$this->meta['merge_fields'] = array();
+		$this->meta['merge_fields'] = [];
 
 		return $this;
 	}
 
 	public function describe_params_fields()
 	{
-		$lists = (array) $this->get_meta('lists', array());
+		$lists = (array) $this->get_meta('lists', []);
 
 		return array(
 			/*'warning' => array(
@@ -149,7 +153,7 @@ class Integration_Driver_MailChimp extends Integration_Driver implements Integra
 	 * @throws Integration_Exception
 	 * @throws Exception
 	 */
-	protected $_create_tag_errors = array();
+	protected $_create_tag_errors = [];
 
 	public function create_merge_field($tag, $name)
 	{
@@ -177,6 +181,10 @@ class Integration_Driver_MailChimp extends Integration_Driver implements Integra
 				$this->_create_tag_errors[$name] = 'Integration error while create field: '.Arr::get($body, 'detail', 'Did not create');
 				return FALSE;
 			}
+			elseif ($r->code == 404 AND stripos($r->body, 'The requested resource could not be found') !== FALSE)
+			{
+				throw new Integration_Exception(INT_E_WRONG_PARAMS, 'list', 'List not found');
+			}
 			elseif (stripos($r->body, 'already exists for this list') !== FALSE)
 			{
 				return $tag;
@@ -185,7 +193,7 @@ class Integration_Driver_MailChimp extends Integration_Driver implements Integra
 		}
 		$id = $r->get('merge_id');
 		// Adding field to meta
-		$merge_fields = $this->get_meta('merge_fields.'.$current_list, array());
+		$merge_fields = $this->get_meta('merge_fields.'.$current_list, []);
 		$merge_fields[$id] = array(
 			'tag' => $tag,
 			'name' => $name,
@@ -205,10 +213,10 @@ class Integration_Driver_MailChimp extends Integration_Driver implements Integra
 	public function get_merge_fields($force_fetch = FALSE)
 	{
 		$current_list = Arr::get($this->params, 'list', '');
-		$merge_fields = Arr::get($this->meta, 'merge_fields', array());
+		$merge_fields = Arr::get($this->meta, 'merge_fields', []);
 		if ( ! isset($merge_fields[$current_list]) OR $force_fetch)
 		{
-			$mf_fields = array();
+			$mf_fields = [];
 			// Getting list-defined merge fields
 			// http://developer.mailchimp.com/documentation/mailchimp/reference/lists/merge-fields/#read-get_lists_list_id_merge_fields
 			$r = Integration_Request::factory()
@@ -223,6 +231,10 @@ class Integration_Driver_MailChimp extends Integration_Driver implements Integra
 			if ($r->code == 401 OR $r->code == 403)
 			{
 				throw new Integration_Exception(INT_E_WRONG_CREDENTIALS, 'api_key', 'Account API Key is not valid');
+			}
+			elseif ($r->code == 404 AND stripos($r->body, 'The requested resource could not be found') !== FALSE)
+			{
+				throw new Integration_Exception(INT_E_WRONG_PARAMS, 'list', 'List not found');
 			}
 			elseif ( ! $r->is_successful())
 			{
@@ -243,7 +255,7 @@ class Integration_Driver_MailChimp extends Integration_Driver implements Integra
 		// Updating the data
 		$this->meta['merge_fields'] = $merge_fields;
 
-		return $this->get_meta('merge_fields.'.$current_list, array());
+		return $this->get_meta('merge_fields.'.$current_list, []);
 	}
 
 	/**
@@ -271,13 +283,13 @@ class Integration_Driver_MailChimp extends Integration_Driver implements Integra
 		'site' => 'SITE',
 	);
 
-	public function translate_person_data_to_int_data(array $person_data, $create_missing_fields = FALSE)
+	public function translate_subscriber_data_to_int_data(array $subscriber_data, $create_missing_fields = FALSE)
 	{
-		$person_meta = Arr::get($person_data, 'meta', array());
-		unset($person_data['meta']);
+		$person_meta = Arr::get($subscriber_data, 'meta', []);
+		unset($subscriber_data['meta']);
 		$using_cached_tags = ($this->get_meta('merge_fields.'.Arr::get($this->params, 'list', '')) !== NULL);
-		$mf_values = array();
-		$tags_names = $this->get_tags_names(! empty($person_data) OR ! empty($person_meta) OR ! $using_cached_tags);
+		$mf_values = [];
+		$tags_names = $this->get_tags_names(! empty($subscriber_data) OR ! empty($person_meta) OR ! $using_cached_tags);
 		// Custom person fields first (so they won't overwrite standard fields)
 		if ( ! empty($person_meta))
 		{
@@ -286,11 +298,12 @@ class Integration_Driver_MailChimp extends Integration_Driver implements Integra
 			foreach ($person_meta as $field_name => $field_value)
 			{
 				// Trying to find existing relevant merge field by its title
-				if ( ! ($tag = array_search(strtoupper($field_name), array_map('strtoupper', $tags_names), TRUE)))
+				$tag = array_search($field_name, $tags_names, TRUE);
+				if ( ! $tag )
 				{
 					// Generating field tag
-					$tag = substr(preg_replace('~[^A-Z\d\_]+~', '', strtoupper($field_name)), 0, 10);
-					$tag_base = substr($tag, 0, 9);
+					$tag = mb_substr(preg_replace('~[^A-Z\d\_]+~', '', mb_strtoupper($field_name)), 0, 10);
+					$tag_base = mb_substr($tag, 0, 9);
 					if (empty($tag))
 					{
 						// Non-ascii symbols case
@@ -311,13 +324,15 @@ class Integration_Driver_MailChimp extends Integration_Driver implements Integra
 					{
 						// Creating new merge field
 						$tag = $this->create_merge_field($tag, $field_name);
-					}
-					if ($tag)
-					{
-						// Updating $tags_names so the added tag presents there
-						$tags_names[$tag] = $field_name;
+
+						if ($tag)
+						{
+							// Updating $tags_names so the added tag presents there
+							$tags_names[$tag] = $field_name;
+						}
 					}
 				}
+
 				if ($tag)
 				{
 					$mf_values[$tag] = $field_value;
@@ -325,11 +340,11 @@ class Integration_Driver_MailChimp extends Integration_Driver implements Integra
 			}
 		}
 		// Standard person fields
-		if ( ! empty($person_data))
+		if ( ! empty($subscriber_data))
 		{
-			foreach ($person_data as $f_type => $field_value)
+			foreach ($subscriber_data as $f_type => $field_value)
 			{
-				$tag = Arr::get($this->standard_merge_fields, $f_type, strtoupper($f_type));
+				$tag = Arr::get($this->standard_merge_fields, $f_type, mb_strtoupper($f_type));
 				if ( ! isset($tags_names[$tag]))
 				{
 					// Human-readable type format
@@ -338,13 +353,15 @@ class Integration_Driver_MailChimp extends Integration_Driver implements Integra
 					{
 						// Creating new merge field
 						$tag = $this->create_merge_field($tag, $field_name);
-					}
-					if ($tag)
-					{
-						// Updating $tags_names so the added tag presents there
-						$tags_names[$tag] = $field_name;
+
+						if ($tag)
+						{
+							// Updating $tags_names so the added tag presents there
+							$tags_names[$tag] = $field_name;
+						}
 					}
 				}
+
 				if ($tag)
 				{
 					$mf_values[$tag] = $field_value;
@@ -381,16 +398,16 @@ class Integration_Driver_MailChimp extends Integration_Driver implements Integra
 			}
 		}
 
-		return empty($mf_values) ? array() : array('merge_fields' => $mf_values);
+		return empty($mf_values) ? [] : array('merge_fields' => $mf_values);
 	}
 
-	public function translate_int_data_to_person_data(array $int_data)
+	public function translate_int_data_to_subscriber_data(array $int_data)
 	{
-		$person_data = array(
-			'meta' => array(),
+		$subscriber_data = array(
+			'meta' => [],
 		);
 		$tags_names = $this->get_tags_names();
-		foreach (Arr::get($int_data, 'merge_fields', array()) as $mf_tag => $value)
+		foreach (Arr::get($int_data, 'merge_fields', []) as $mf_tag => $value)
 		{
 			if (empty($value))
 			{
@@ -399,7 +416,7 @@ class Integration_Driver_MailChimp extends Integration_Driver implements Integra
 			if ($f_type = array_search($mf_tag, $this->standard_merge_fields, TRUE))
 			{
 				// Standard type
-				$person_data[$f_type] = $value;
+				$subscriber_data[$f_type] = $value;
 				continue;
 			}
 			else
@@ -415,16 +432,16 @@ class Integration_Driver_MailChimp extends Integration_Driver implements Integra
 					}
 				}
 				$f_name = $tags_names[$mf_tag];
-				$person_data['meta'][$f_name] = $value;
+				$subscriber_data['meta'][$f_name] = $value;
 			}
 		}
 
-		if (empty($person_data['meta']))
+		if (empty($subscriber_data['meta']))
 		{
-			unset($person_data['meta']);
+			unset($subscriber_data['meta']);
 		}
 
-		return $person_data;
+		return $subscriber_data;
 	}
 
 	/**
@@ -450,6 +467,10 @@ class Integration_Driver_MailChimp extends Integration_Driver implements Integra
 		{
 			throw new Integration_Exception(INT_E_INTERNAL_SERVER_ERROR);
 		}
+		/*elseif ($r->code == 404 AND stripos($r->body, 'The requested resource could not be found') !== FALSE)
+		{
+			throw new Integration_Exception(INT_E_WRONG_PARAMS, 'list', 'List not found');
+		}*/
 		elseif ( ! $r->is_successful())
 		{
 			return NULL;
@@ -461,21 +482,21 @@ class Integration_Driver_MailChimp extends Integration_Driver implements Integra
 			return NULL;
 		}
 
-		return $this->translate_int_data_to_person_data(array(
-			'merge_fields' => $r->get('merge_fields', array()),
+		return $this->translate_int_data_to_subscriber_data(array(
+			'merge_fields' => $r->get('merge_fields', []),
 		));
 	}
 
 	/**
 	 * @param string $email
-	 * @param array $person_data
+	 * @param array $subscriber_data
 	 * @param bool $update
 	 * @throws Integration_Exception
 	 * @throws Exception
 	 */
-	protected function put_person($email, $person_data, $update = FALSE)
+	protected function put_person($email, $subscriber_data, $update = FALSE)
 	{
-		$request_data = array_merge($this->translate_person_data_to_int_data($person_data, TRUE), array(
+		$request_data = array_merge($this->translate_subscriber_data_to_int_data($subscriber_data, TRUE), array(
 			'status' => $this->get_params('double_optin', TRUE) ? 'pending' : 'subscribed',
 			'email_address' => $email,
 		));
@@ -511,8 +532,17 @@ class Integration_Driver_MailChimp extends Integration_Driver implements Integra
 				{
 					throw new Integration_Exception(INT_E_EMAIL_DUPLICATE, 'email', 'User is already a list member');
 				}
+				elseif (stripos($r->body, 'was permanently deleted and cannot be') !== FALSE)
+				{
+					throw new Integration_Exception(INT_E_WRONG_DATA, 'email', 'Already unsubscribed');
+				}
 				// Check for banned e-mail
-				elseif (stripos($r->body, 'looks fake or invalid') !== FALSE)
+				elseif (stripos($r->body, 'looks fake or invalid') !== FALSE )
+				{
+					throw new Integration_Exception(INT_E_WRONG_DATA, 'email', 'E-mail looks fake or invalid');
+				}
+				// Check for not valid e-mail
+				elseif (stripos($r->body, 'The resource submitted could not be validated') !== FALSE)
 				{
 					throw new Integration_Exception(INT_E_WRONG_DATA, 'email', 'E-mail looks fake or invalid');
 				}
@@ -566,23 +596,24 @@ class Integration_Driver_MailChimp extends Integration_Driver implements Integra
 			throw new Integration_Exception(INT_E_EMAIL_NOT_VERIFIED);
 		}
 		// Verifying the data
-		foreach (Arr::get($request_data, 'merge_fields', array()) as $mf_tag => $mf_value)
+		foreach (Arr::get($request_data, 'merge_fields', []) as $mf_tag => $mf_value)
 		{
-			if ($r->path('merge_fields.'.$mf_tag) !== trim($mf_value))
+			$mf_value = trim(strip_tags($mf_value));
+			if (trim(strip_tags($r->path('merge_fields.'.$mf_tag))) !== $mf_value)
 			{
 				throw new Integration_Exception(INT_E_DATA_NOT_VERIFIED, $mf_tag);
 			}
 		}
 	}
 
-	public function create_person($email, $person_data)
+	public function create_person($email, $subscriber_data)
 	{
-		$this->put_person($email, $person_data, FALSE);
+		$this->put_person($email, $subscriber_data, FALSE);
 	}
 
-	public function update_person($email, $person_data)
+	public function update_person($email, $subscriber_data)
 	{
-		$this->put_person($email, $person_data, TRUE);
+		$this->put_person($email, $subscriber_data, TRUE);
 	}
 
 }

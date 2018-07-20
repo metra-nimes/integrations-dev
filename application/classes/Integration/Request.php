@@ -206,45 +206,61 @@ class Integration_Request {
 	 * @link https://nullinfo.wordpress.com/oauth-twitter/
 	 *
 	 * @param string $key
+	 * @param string $secret
+	 * @param string $oauth_token
+	 * @param string $oauth_secret
 	 * @return Integration_Request
 	 */
-	public function oauth_signature($key, $secret)
+	public function twitter_oauth_signature($key, $secret, $oauth_token = '', $oauth_secret = '')
 	{
-		$this->headers(array(
+		$headers = array(
 			'oauth_consumer_key' => $key,
+			'oauth_nonce' => md5(microtime().mt_rand()),
 			'oauth_signature_method' => 'HMAC-SHA1',
 			'oauth_timestamp' => time(),
 			'oauth_version' => '1.0',
-			'oauth_nonce' => md5(microtime().mt_rand()),
-		));
-
-		$signature_base = array(
-			strtoupper($this->method),
-			strtolower($this->url),
 		);
 
-		$keys = array_map('rawurlencode', array_keys($this->data));
-		$values = array_map('rawurlencode', array_values($this->data));
-		$params = array_combine($keys, $values);
-		// Parameters are sorted by name, using lexicographical byte value ordering.
-		// Ref: Spec: 9.1.1 (1)
-		uksort($params, 'strcmp');
-
-		foreach ($params as $key => $value)
+		if (! empty($oauth_token))
 		{
-			$signature_base[] = $key.'='.$value;
+			$headers['oauth_token'] = $oauth_token;
 		}
 
-		$signature_base_string = implode('&', $signature_base);
+		if (! empty($this->headers))
+		{
+			$headers = array_merge($headers, $this->headers);
+		}
 
-		$oauth_token = implode('&', array(
-			rawurlencode($key),
-			rawurlencode($secret),
-		));
+		if ( ! empty($this->data))
+		{
+			$headers = array_merge($this->data, $headers);
+		}
 
-		$signature = base64_encode(hash_hmac('sha1', $signature_base_string, $oauth_token, TRUE));
+		ksort($headers);
 
-		$this->headers['oauth_signature'] = $signature;
+		$signature_string = strtoupper($this->method).'&'.rawurlencode($this->url).'&'.rawurlencode(http_build_query($headers, NULL, '&', PHP_QUERY_RFC3986));
+
+		$signature_key = rawurlencode($secret).'&'.rawurlencode($oauth_secret);
+		$signature = base64_encode(hash_hmac('sha1', $signature_string, $signature_key, TRUE));
+
+		$headers['oauth_signature'] = $signature;
+		ksort($headers);
+
+		if (isset($headers['oauth_verifier']))
+		{
+			unset($headers['oauth_verifier']);
+		}
+
+		$request_headers = 'OAuth';
+		$first = TRUE;
+		foreach ($headers as $key => $val)
+		{
+			$request_headers .= ($first) ? ' ' : ", ";
+			$request_headers .= rawurlencode($key).'="'.rawurlencode($val).'"';
+			$first = FALSE;
+		}
+		$this->headers = array();
+		$this->header('Authorization', $request_headers);
 
 		return $this;
 	}
@@ -377,7 +393,7 @@ class Integration_Request {
 			'request_data' => $this->data(),
 			'response_code' => $code,
 			'response_headers' => $this->response_headers,
-			'response_data' => $response->data, //same as body?
+			'response_data' => $response->data,
 			'response_body' => $body,
 		);
 
@@ -388,7 +404,7 @@ class Integration_Request {
 	{
 		if (preg_match('/(\w[^\s:]*):[ ]*([^\r\n]*(?:\r\n[ \t][^\r\n]*)*)/', $header_line, $matches))
 		{
-			$this->response_headers[$matches[1]] = $matches[2];
+			$this->response_headers[Text::ucfirst($matches[1])] = $matches[2];
 		}
 
 		return strlen($header_line);

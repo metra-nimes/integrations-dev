@@ -24,14 +24,39 @@ class URL extends Kohana_URL {
 	/**
 	 * @return string Current domain (with protocol included)
 	 */
-	public static function domain()
+	public static function domain($with_protocol = TRUE, $only_root = FALSE)
 	{
+		$protocol = $with_protocol ? URL::protocol().'//' : '';
 		if (isset($_SERVER['HTTP_HOST']))
 		{
-			return URL::protocol().'//'.$_SERVER['HTTP_HOST'];
+			$domain = $_SERVER['HTTP_HOST'];
+		}
+		else
+		{
+			// CLI mode
+			switch (BASEPATH)
+			{
+				case '/srv/app.convertful.com/':
+					$domain = 'app.convertful.com';
+					break;
+				case '/srv/app.devcf.su/':
+					$domain = 'app.devcf.su';
+					break;
+				case '/srv/convertful.local/':
+					$domain = 'convertful.local';
+					break;
+				default:
+					$domain = 'app.convertful.com';
+			}
 		}
 
-		return 'http://integrations.convertful.local/';
+		if ($only_root)
+		{
+			$domain = explode('.', $domain);
+			$domain = implode('.', array_slice($domain, -2, 2));
+		}
+
+		return $protocol.$domain;
 	}
 
 	/**
@@ -73,6 +98,21 @@ class URL extends Kohana_URL {
 				)
 			)
 		);
+	}
+
+	public static function is_relative($url)
+	{
+		return ! self::is_absolute($url);
+	}
+
+	public static function is_absolute($url)
+	{
+		$pattern = "/^(?:https?):\/\/(?:(?:(?:[\w\.\-\+!$&'\(\)*\+,;=]|%[0-9a-f]{2})+:)*
+    (?:[\w\.\-\+%!$&'\(\)*\+,;=]|%[0-9a-f]{2})+@)?(?:
+    (?:[a-z0-9\-\.]|%[0-9a-f]{2})+|(?:\[(?:[0-9a-f]{0,4}:)*(?:[0-9a-f]{0,4})\]))(?::[0-9]+)?(?:[\/|\?]
+    (?:[\w#!:\.\?\+=&@$'~*,;\/\(\)\[\]\-]|%[0-9a-f]{2})*)?$/xi";
+
+		return (bool) preg_match($pattern, $url);
 	}
 
 }

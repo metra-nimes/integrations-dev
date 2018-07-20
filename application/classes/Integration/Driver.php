@@ -65,6 +65,34 @@ abstract class Integration_Driver {
 	}
 
 	/**
+	 * Name of the legal entity
+	 * @var null
+	 */
+	protected static $company_name = NULL;
+
+	/**
+	 * Address of the legal entity
+	 * @var null
+	 */
+	protected static $company_address = NULL;
+
+	/**
+	 * Main site url
+	 * @var null
+	 */
+	protected static $company_url = NULL;
+
+	/**
+	 * Get formatted company information
+	 *
+	 * @return string
+	 */
+	public static function get_company_info()
+	{
+		return static::$company_name . ' (' .static::$company_url . ')';
+	}
+
+	/**
 	 * @var array Driver request log
 	 */
 	public $requests_log = array();

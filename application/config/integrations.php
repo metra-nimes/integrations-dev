@@ -5,8 +5,8 @@ return array(
 		'title' => 'MailChimp',
 		'ready_for' => Kohana::PRODUCTION,
 	),
-	'HubSpot' => array(
-		'title' => 'HubSpot',
+	'Drip' => array(
+		'title' => 'Drip',
 		'ready_for' => Kohana::PRODUCTION,
 	),
 );

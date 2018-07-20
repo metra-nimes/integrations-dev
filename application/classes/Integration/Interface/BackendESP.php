@@ -12,12 +12,12 @@ interface Integration_Interface_BackendESP {
 	/**
 	 * Translate person data from standard convertful to integration format
 	 *
-	 * @param array $person_data Person data in standard convertful format
+	 * @param array $subscriber_data Person data in standard convertful format
 	 * @param bool $create_missing_fields
 	 * @return array Integration-specified person data format
 	 * @throws Integration_Exception
 	 */
-	public function translate_person_data_to_int_data(array $person_data, $create_missing_fields = FALSE);
+	public function translate_subscriber_data_to_int_data(array $subscriber_data, $create_missing_fields = FALSE);
 
 	/**
 	 * Translate person data from integration to standard convertful format
@@ -25,7 +25,7 @@ interface Integration_Interface_BackendESP {
 	 * @param array $int_data Person data in integration format
 	 * @return array Person data in standard convertful format
 	 */
-	public function translate_int_data_to_person_data(array $int_data);
+	public function translate_int_data_to_subscriber_data(array $int_data);
 
 	/**
 	 * Get person by email
@@ -38,18 +38,18 @@ interface Integration_Interface_BackendESP {
 	 * Create a person with given data
 	 *
 	 * @param string $email
-	 * @param array $person_data
+	 * @param array $subscriber_data
 	 * @throws Integration_Exception If couldn't submit
 	 */
-	public function create_person($email, $person_data);
+	public function create_person($email, $subscriber_data);
 
 	/**
 	 * Update a person with given data
 	 *
 	 * @param string $email
-	 * @param array $person_data
+	 * @param array $subscriber_data
 	 * @throws Integration_Exception If couldn't submit
 	 */
-	public function update_person($email, $person_data);
+	public function update_person($email, $subscriber_data);
 
 }

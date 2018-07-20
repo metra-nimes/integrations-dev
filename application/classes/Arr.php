@@ -137,12 +137,13 @@ class Arr extends Kohana_Arr {
 	 *     // The array will now be
 	 *     array('set.one' => 'something', 'two' => 'other');
 	 *
-	 * @param   array $array array to flatten
+	 * @param array $array array to flatten
 	 * @param bool|string $prefix make complex array keys (number keys DO NOT flatten)
+	 * @param array $exceptions Paths to exclude from flattening
 	 * @return array
 	 * @since   3.0.6
 	 */
-	public static function kohana_flatten($array, $prefix = FALSE)
+	public static function kohana_flatten($array, $prefix = FALSE, $exceptions = array())
 	{
 		$is_assoc = Arr::is_assoc($array);
 		$flat = array();
@@ -153,9 +154,14 @@ class Arr extends Kohana_Arr {
 
 		foreach ($array as $key => $value)
 		{
-			if (is_array($value))
+			if (in_array($prefix.$key, $exceptions))
 			{
-				$flat = array_merge($flat, Arr::kohana_flatten($value, $prefix.$key.Arr::$delimiter));
+				// Setting value "as is"
+				$flat[$prefix.$key] = $value;
+			}
+			elseif (is_array($value))
+			{
+				$flat = array_merge($flat, Arr::kohana_flatten($value, $prefix.$key.Arr::$delimiter, $exceptions));
 			}
 			else
 			{
@@ -272,6 +278,46 @@ class Arr extends Kohana_Arr {
 		return $array;
 	}
 
+	/**
+	 * http://uk1.php.net/array_walk_recursive implementation that is used to remove nodes from the array.
+	 *
+	 * @param array The input array.
+	 * @param callable $callback Function must return boolean value indicating whether to remove the node.
+	 * @return array
+	 */
+	public static function walk_recursive_remove (array $array, callable $callback) {
+		foreach ($array as $k => $v) {
+			if (is_array($v)) {
+				$array[$k] = self::walk_recursive_remove($v, $callback);
+			} else {
+				if ($callback($v, $k)) {
+					unset($array[$k]);
+				}
+			}
+		}
+		return $array;
+	}
+
+	public static function recursive_diff($aArray1, $aArray2) {
+		$aReturn = array();
+
+		foreach ($aArray1 as $mKey => $mValue) {
+			if (array_key_exists($mKey, $aArray2)) {
+				if (is_array($mValue)) {
+					$aRecursiveDiff = self::recursive_diff($mValue, $aArray2[$mKey]);
+					if (count($aRecursiveDiff)) { $aReturn[$mKey] = $aRecursiveDiff; }
+				} else {
+					if ($mValue != $aArray2[$mKey]) {
+						$aReturn[$mKey] = $mValue;
+					}
+				}
+			} else {
+				$aReturn[$mKey] = $mValue;
+			}
+		}
+		return $aReturn;
+	}
+
 	public static function delete_path( & $array, $path, $delimiter = NULL)
 	{
 		if ( ! $delimiter)
@@ -309,5 +355,42 @@ class Arr extends Kohana_Arr {
 
 		// Set key on inner-most array
 		unset($array[array_shift($keys)]);
+	}
+
+
+	/**
+	 * Retrieves muliple single-key values from a list of arrays.
+	 *
+	 *     // Get all of the "id" values from a result
+	 *     $ids = Arr::pluck($result, 'id');
+	 *
+	 * [!!] A list of arrays is an array that contains arrays, eg: array(array $a, array $b, array $c, ...)
+	 *
+	 * @param array $array list of arrays to check
+	 * @param string $key key to pluck
+	 * @param bool $preserve_keys Preserve keys of the given array?
+	 * @return array
+	 */
+	public static function pluck($array, $key, $preserve_keys = FALSE)
+	{
+		$values = array();
+
+		foreach ($array as $k => $row)
+		{
+			if (isset($row[$key]))
+			{
+				// Found a value in this row
+				if ($preserve_keys)
+				{
+					$values[$k] = $row[$key];
+				}
+				else
+				{
+					$values[] = $row[$key];
+				}
+			}
+		}
+
+		return $values;
 	}
 }
