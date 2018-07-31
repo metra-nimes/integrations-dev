@@ -5,6 +5,7 @@ class Controller_API_Inttests extends Controller_API {
 	public $driver_log = array();
 	private $_changed = array();
 
+
 	/**
 	 * GET /api/inttests/describe_credentials_fields
 	 * @get string driver_name Integration driver name
@@ -55,10 +56,35 @@ class Controller_API_Inttests extends Controller_API {
 			$driver->fetch_meta();
 			$this->output['meta'] = $driver->get_meta();
 			$this->output['credentials'] = $driver->get_credentials();
-			$this->output['params_fields'] = View::factory('cof/fieldset', array(
-				'fields' => $driver->describe_params_fields(),
-				'values' => array(),
-			))->render();
+
+			$params = $driver->describe_params_fields();
+			if (! empty($params))
+			{
+				$this->output['params_fields'] = View::factory('cof/fieldset', array(
+					'fields' => $params,
+					'values' => array(),
+				))->render();
+			}
+
+			$automations = $driver->describe_automations();
+			if (! empty($automations))
+			{
+				$automations = array_map(function ($item){
+					return Arr::get($item, 'title', 'No Name');
+				}, $automations);
+				$this->output['automations'] = View::factory('cof/field', array(
+					'name' => 'automation',
+					'id' => 'cof_automation',
+					'field' => array(
+						'title' => 'Automation',
+						'type' => 'select2',
+						'options' => array_merge(['' => 'Choose automation ...'], $automations),
+					),
+					'values' => array(
+						'driver' => '',
+					),
+				))->render();
+			}
 
 			$this->update_driver_data($driver, $credentials, array());
 		}
@@ -66,6 +92,43 @@ class Controller_API_Inttests extends Controller_API {
 		{
 			return $this->add_error($e->getCode().': '.$e->getMessage(), $e->getField());
 		}
+	}
+
+	/**
+	 * GET /api/inttests/describe_automation
+	 * @get string automation_name Integration driver name
+	 */
+	public function action_describe_automation()
+	{
+		$driver_name = $this->request->query('driver_name');
+		$credentials = $this->request->query('credentials');
+		$meta = $this->request->query('meta');
+
+		$driver = Integration_Driver::factory($driver_name)
+			->set_credentials($credentials, TRUE)
+			->set_meta(json_decode($meta, true));
+
+		$automation_name = $this->request->query('automation_name');
+		$automations = $driver->describe_automations();
+		if ( ! isset($automations[$automation_name]))
+		{
+			$this->add_error('access.404');
+		}
+
+		$fields = array_merge(
+			Arr::path($automations, [$automation_name, 'params_fields'], []),
+			[
+				'submit' => [
+					'title' => 'Test automation',
+					'action' => $automation_name,
+					'type' => 'submit',
+				],
+			]
+		);
+		$this->output = View::factory('cof/fieldset', [
+			'fields' => $fields,
+			'values' => [],
+		])->render();
 	}
 
 	/**
@@ -95,24 +158,21 @@ class Controller_API_Inttests extends Controller_API {
 		}
 	}
 
+
 	/**
-	 * POST /api/inttests/submit
-	 * @get string driver_name
-	 * @get array credentials
-	 * @get array meta
-	 * @get array params
-	 * @get array data Form data
+	 * POST /api/inttests/get_subscriber
 	 */
-	public function action_submit()
+	public function action_get_subscriber()
 	{
 		$driver_name = $this->request->post('driver_name');
 		$credentials = Arr::get($this->request->post(), 'credentials', array());
 		$meta = Arr::get($this->request->post(), 'meta', array());
 		$params = Arr::get($this->request->post(), 'params', array());
-		$person_data = Arr::get($this->request->post(), 'data', array());
+		$subscriber_data = Arr::get($this->request->post(), 'data', array());
 
-		$email = Arr::get($person_data, 'email', '');
-		unset($person_data['email']);
+
+		$email = Arr::get($subscriber_data, 'email', '');
+		unset($subscriber_data['email']);
 		if (empty($email) OR ! Valid::email($email))
 		{
 			return $this->add_error('Please enter a valid email', 'email');
@@ -122,47 +182,7 @@ class Controller_API_Inttests extends Controller_API {
 			$driver = Integration_Driver::factory($driver_name, $credentials, $meta, $params);
 			$this->driver_log = &$driver->requests_log;
 			// This part replicates the same part from Daemon::submit_integration
-			if ($driver->get_person($email) !== NULL)
-			{
-				$driver->update_person($email, $person_data);
-				throw new Integration_Exception(INT_E_EMAIL_DUPLICATE);
-			}
-			$driver->create_person($email, $person_data);
-
-			$this->update_driver_data($driver, $credentials, $meta, $params);
-		}
-		catch (Integration_Exception $e)
-		{
-			$this->_errors = array(
-				'error' => $e->getCode().': '.$e->getMessage(), $e->getField(),
-			);
-		}
-	}
-
-	/**
-	 * POST /api/inttests/get_person
-	 */
-	public function action_get_person()
-	{
-		$driver_name = $this->request->post('driver_name');
-		$credentials = Arr::get($this->request->post(), 'credentials', array());
-		$meta = Arr::get($this->request->post(), 'meta', array());
-		$params = Arr::get($this->request->post(), 'params', array());
-		$person_data = Arr::get($this->request->post(), 'data', array());
-
-
-		$email = Arr::get($person_data, 'email', '');
-		unset($person_data['email']);
-		if (empty($email) OR ! Valid::email($email))
-		{
-			return $this->add_error('Please enter a valid email', 'email');
-		}
-		try
-		{
-			$driver = Integration_Driver::factory($driver_name, $credentials, $meta, $params);
-			$this->driver_log = &$driver->requests_log;
-			// This part replicates the same part from Daemon::submit_integration
-			$person = $driver->get_person($email);
+			$person = $driver->get_subscriber($email);
 			if ($person)
 			{
 				$this->output['person'] = $person;
@@ -178,66 +198,24 @@ class Controller_API_Inttests extends Controller_API {
 		}
 	}
 
-	/**
-	 * POST /api/inttests/create_person
-	 */
-	public function action_create_person()
+	public function action_automation()
 	{
 		$driver_name = $this->request->post('driver_name');
-		$credentials = Arr::get($this->request->post(), 'credentials', array());
-		$meta = Arr::get($this->request->post(), 'meta', array());
-		$params = Arr::get($this->request->post(), 'params', array());
-		$person_data = Arr::get($this->request->post(), 'data', array());
+		$credentials = Arr::get($this->request->post(), 'credentials', []);
+		$meta = Arr::get($this->request->post(), 'meta', []);
+		$subscriber_data = Arr::get($this->request->post(), 'data', []);
 
+		$automation = Arr::get($this->request->post(), 'automation', []);
+		$automation_params = Arr::get($this->request->post(), 'automation_params', []);
 
-		$email = Arr::get($person_data, 'email', '');
-		unset($person_data['email']);
-		if (empty($email) OR ! Valid::email($email))
-		{
-			return $this->add_error('Please enter a valid email', 'email');
-		}
 		try
 		{
-			$driver = Integration_Driver::factory($driver_name, $credentials, $meta, $params);
+			$driver = Integration_Driver::factory($driver_name, $credentials, $meta);
 			$this->driver_log = &$driver->requests_log;
-			$driver->create_person($email, $person_data);
 
-			$this->update_driver_data($driver, $credentials, $meta, $params);
-		}
-		catch (Integration_Exception $e)
-		{
-			$this->_errors = array(
-				'error' => $e->getCode().': '.$e->getMessage(), $e->getField(),
-			);
-		}
-	}
+			$driver->exec_automation($automation, $automation_params, $subscriber_data);
 
-	/**
-	 * POST /api/inttests/update_person
-	 */
-	public function action_update_person()
-	{
-		$driver_name = $this->request->post('driver_name');
-		$credentials = Arr::get($this->request->post(), 'credentials', array());
-		$meta = Arr::get($this->request->post(), 'meta', array());
-		$params = Arr::get($this->request->post(), 'params', array());
-		$person_data = Arr::get($this->request->post(), 'data', array());
-
-
-		$email = Arr::get($person_data, 'email', '');
-		unset($person_data['email']);
-		if (empty($email) OR ! Valid::email($email))
-		{
-			return $this->add_error('Please enter a valid email', 'email');
-		}
-		try
-		{
-			$driver = Integration_Driver::factory($driver_name, $credentials, $meta, $params);
-			$this->driver_log = &$driver->requests_log;
-			$driver->update_person($email, $person_data);
-			//TODO: throw new Integration_Exception(INT_E_EMAIL_DUPLICATE);
-
-			$this->update_driver_data($driver, $credentials, $meta, $params);
+			$this->update_driver_data($driver, $credentials, $meta);
 		}
 		catch (Integration_Exception $e)
 		{

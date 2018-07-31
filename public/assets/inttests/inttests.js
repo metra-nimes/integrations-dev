@@ -112,10 +112,6 @@ jQuery(function($){
 					{
 						$cf.Inttests.$metaTextarea.val(JSON.stringify(data.changed.meta, null, 4)).highlight();
 					}
-					if (data.changed.params)
-					{
-						if ($cf.Inttests.params) $cf.Inttests.params.setValues(data.changed.params);
-					}
 				}
 			} catch (e) {
 				$cf.Inttests.$response.html('<pre></pre>').find('pre:last').text(data);
@@ -137,9 +133,12 @@ jQuery(function($){
 		$credentials: $('.cof-integrations-credentials'),
 		$credentialsTextarea: $('.cof-integrations-credentials-textarea'),
 		$metaTextarea: $('.driver-controls-request.for_meta textarea'),
-		$params: $('.driver-controls-fields.for_params .driver-controls-fields-h'),
-		$paramsTextarea: $('.driver-controls-request.for_params textarea'),
+
 		$paramsWrapper: $('.params'),
+
+		$automations: $('.driver-controls-fields.for_automations .driver-controls-fields-h'),
+		$automationsSelect: $('.driver-controls-fields.for_automations .cof-integrations-item-content'),
+
 		$response: $('.inttests-response'),
 		$log: $('.inttests-logs'),
 		$formWrapper: $('.driver-controls-fields.for_form'),
@@ -152,7 +151,7 @@ jQuery(function($){
 
 		driverSelector: null,
 		credentials: null,
-		params: null,
+		automationSelect: null,
 		formControls: null,
 
 
@@ -187,7 +186,7 @@ jQuery(function($){
 			}.bind(this));
 
 			// Click refresh button
-			this.$params.on('click', '.cof-form-row-control-refresh',function(){
+			this.$paramsWrapper.on('click', '.cof-form-row-control-refresh',function(){
 				this.submitCredentials();
 			}.bind(this));
 
@@ -234,18 +233,21 @@ jQuery(function($){
 					$el.remove();
 					this.$formFieldList.find('option[value="' + quoteattr(name) + '"]').prop('disabled', false);
 				}.bind(this))
-				.on('click', '.driver-controls-fields-button.for_get',  function(e){
+				.on('click', '.for_get',  function(e){
 					e.preventDefault();
-					this.getPerson();
-				}.bind(this))
-				.on('click', '.driver-controls-fields-button.for_update',  function(e){
+					this.getSubscriber();
+				}.bind(this));
+
+			this.$automations
+				.on('click', '.g-btn', function(e){
 					e.preventDefault();
-					this.updatePerson();
-				}.bind(this))
-				.on('click', '.driver-controls-fields-button.for_create',  function(e){
-					e.preventDefault();
-					this.createPerson();
-				}.bind(this))
+					var action  = $(e.currentTarget).cfMod('action');
+
+					if (action)
+					{
+						this.execAutomation(action);
+					}
+				}.bind(this));
 		},
 
 		clearLog: function () {
@@ -346,10 +348,17 @@ jQuery(function($){
 					try {
 						if (typeof response !== 'object') response = JSON.parse(response);
 						if (response.success){
-							this.$params
-								.html(response.data.params_fields)
-								.highlight();
-							this.params = new $cof.Fieldset(this.$params);
+
+							if (response.data.automations)
+							{
+								this.$automationsSelect.prepend(response.data.automations);
+								//Driver selector
+								this.automationSelect = new $cof.Field('.cof-form-row[data-name="automation"]');
+								this.automationSelect.on('change', function(value){
+									this.renderAutomation(value);
+								}.bind(this));
+							}
+
 							meta = JSON.stringify(response.data.meta, null, 4);
 							this.$paramsWrapper.slideDown();
 
@@ -387,14 +396,50 @@ jQuery(function($){
 				}.bind(this));
 		},
 
-		signUp: function(){
-			var url = '/api/inttests/submit',
-				meta = {},
+		renderAutomation: function(automationName){
+			var url = '/api/inttests/describe_automation',
+				data = {
+					driver_name: this.driverSelector.getValue(),
+					credentials: this.credentials.getValues(),
+					meta: this.$metaTextarea.val(),
+					automation_name: automationName
+				};
+
+			$.get(url, data)
+				.done(function(response){
+					try {
+						if (typeof response !== 'object')
+							response = JSON.parse(response);
+
+						if (response.success){
+							this.$automations
+								.html(response.data)
+								.highlight();
+
+							this.automation = new $cof.Fieldset(this.$automations);
+						} else {
+							this.$response.html('<pre>' +  response + '</pre>');
+						}
+					} catch (e) {
+						// Error parsing response
+						console.error(e);
+						if (response.errors === undefined)
+							this.$response.html('<pre>' +  response + '</pre>');
+					}
+				}.bind(this))
+				.fail(function () {
+					this.$response.html('<pre>Something went wrong!</pre>');
+				}.bind(this));
+		},
+
+		execAutomation: function(automationName){
+			var url = '/api/inttests/automation',
 				data = {
 					driver_name: this.driverSelector.getValue(),
 					credentials: this.credentials.getValues(),
 					meta: JSON.parse(this.$metaTextarea.val()),
-					params: this.params.getValues(),
+					automation: automationName,
+					automation_params: this.automation.getValues(),
 					data: this.$form.serializeArray().reduce(function(obj, item) {
 						obj[item.name] = item.value;
 						if (this.defaultFields.indexOf(item.name) === -1) {
@@ -405,7 +450,7 @@ jQuery(function($){
 						return obj;
 					}.bind(this), {})
 				};
-			$.extend(data.meta, meta);
+
 			this.$sidebar.find('.conv-form-field').removeClass('conv_error')
 				.find('.cof-form-row-state').html('');
 
@@ -420,7 +465,7 @@ jQuery(function($){
 								{
 									this.$sidebar.find('.conv-form-field.for_' + key).addClass('conv_error')
 										.find('.conv-form-field-message')
-										.html(message.replace(/^\d+\: /, ''));
+										.html(message.replace(/^\d+: /, ''));
 								}
 							}.bind(this));
 						}
@@ -435,104 +480,13 @@ jQuery(function($){
 				}.bind(this));
 		},
 
-		getPerson: function(){
-			var url = '/api/inttests/get_person',
+		getSubscriber: function(){
+			var url = '/api/inttests/get_subscriber',
 				meta = {},
 				data = {
 					driver_name: this.driverSelector.getValue(),
 					credentials: this.credentials.getValues(),
 					meta: JSON.parse(this.$metaTextarea.val()),
-					params: this.params.getValues(),
-					data: this.$form.serializeArray().reduce(function(obj, item) {
-						obj[item.name] = item.value;
-						if (this.defaultFields.indexOf(item.name) === -1) {
-							obj.meta = obj.meta || {};
-							obj.meta[item.name] = item.value;
-							delete obj[item.name];
-						}
-						return obj;
-					}.bind(this), {})
-				};
-			$.extend(data.meta, meta);
-			this.$sidebar.find('.conv-form-field').removeClass('conv_error')
-				.find('.cof-form-row-state').html('');
-
-			return $.post(url, data)
-				.then(function(response){
-					try {
-						if (typeof response !== 'object')
-							response = JSON.parse(response);
-						if (!response.success) {
-							$.each(response.errors, function(key, message){
-								this.$sidebar.find('.conv-form-field.for_' + key).addClass('conv_error')
-									.find('.conv-form-field-message')
-									.html(message.replace(/^\d+\: /, ''));
-							}.bind(this));
-						}
-						return (response.data && response.data.person) ? response.data.person : null;
-					} catch (e) {
-						// Error parsing response
-						console.error(e);
-						if (response.errors === undefined)
-							this.$response.html('<pre>' +  response + '</pre>');
-					}
-					return null;
-				}.bind(this));
-		},
-
-		createPerson: function(){
-			var url = '/api/inttests/create_person',
-				meta = {},
-				data = {
-					driver_name: this.driverSelector.getValue(),
-					credentials: this.credentials.getValues(),
-					meta: JSON.parse(this.$metaTextarea.val()),
-					params: this.params.getValues(),
-					data: this.$form.serializeArray().reduce(function(obj, item) {
-						obj[item.name] = item.value;
-						if (this.defaultFields.indexOf(item.name) === -1) {
-							obj.meta = obj.meta || {};
-							obj.meta[item.name] = item.value;
-							delete obj[item.name];
-						}
-						return obj;
-					}.bind(this), {})
-				};
-			$.extend(data.meta, meta);
-			this.$sidebar.find('.conv-form-field').removeClass('conv_error')
-				.find('.cof-form-row-state').html('');
-
-			return $.post(url, data)
-				.then(function(response){
-					try {
-						if (typeof response !== 'object')
-							response = JSON.parse(response);
-						if (!response.success) {
-							$.each(response.errors, function(key, message){
-								this.$sidebar.find('.conv-form-field.for_' + key).addClass('conv_error')
-									.find('.conv-form-field-message')
-									.html(message.replace(/^\d+\: /, ''));
-							}.bind(this));
-						}
-						return (response.data && response.data.person) ? response.data.person : null;
-					} catch (e) {
-						// Error parsing response
-						console.error(e);
-						if (response.errors === undefined)
-							this.$response.html('<pre>' +  response + '</pre>');
-					}
-					return null;
-				}.bind(this));
-		},
-
-		updatePerson: function(){
-			var url = '/api/inttests/update_person',
-				meta = {},
-				data = {
-					driver_name: this.driverSelector.getValue(),
-					credentials: this.credentials.getValues(),
-					meta: JSON.parse(this.$metaTextarea.val()),
-					params: this.params.getValues(),
 					data: this.$form.serializeArray().reduce(function(obj, item) {
 						obj[item.name] = item.value;
 						if (this.defaultFields.indexOf(item.name) === -1) {
@@ -571,6 +525,33 @@ jQuery(function($){
 		}
 	};
 
+	$.fn.cfMod = function(mod, value){
+		if (this.length === 0) return this;
+		// Remove class modificator
+		if (value === false){
+			return this.each(function(){
+				this.className = this.className.replace(new RegExp('(^| )' + mod + '\_[a-zA-Z0-9\_\-]+((?= )|$)', 'g'), '$2');
+			});
+		}
+		var pcre = new RegExp('^.*?' + mod + '\_([a-zA-Z0-9\_\-]+).*?$'),
+			arr;
+		// Retrieve modificator
+		if (value === undefined){
+			return (arr = pcre.exec(this.get(0).className)) ? arr[1] : false;
+		}
+		// Set modificator
+		else {
+			var regexp = new RegExp('(^| )' + mod + '\_[a-zA-Z0-9\_\-]+( |$)');
+			return this.each(function(){
+				if (this.className.match(regexp)){
+					this.className = this.className.replace(regexp, '$1' + mod + '_' + value + '$2');
+				}
+				else {
+					this.className += ' ' + mod + '_' + value;
+				}
+			});
+		}
+	};
 
 	$.fn.highlight = function(){
 		this.addClass('highlight');

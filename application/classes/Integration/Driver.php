@@ -287,7 +287,9 @@ abstract class Integration_Driver {
 	 *
 	 * @return array COF fieldset config for params form, so a user could connect specific optin with integration
 	 */
-	abstract public function describe_params_fields();
+	public function describe_params_fields(){
+		return [];
+	}
 
 	/**
 	 * Format the entered credentials data before it's validated and saved in a database. This function is efficient for
@@ -370,5 +372,57 @@ abstract class Integration_Driver {
 	public static function describe_data_rules()
 	{
 		return array();
+	}
+
+
+	/**
+	 * @todo: this method should be abstract
+	 * @return mixed
+	 */
+	public function describe_show_if()
+	{
+		return [];
+	}
+
+
+	/**
+	 * @todo: this method should be abstract
+	 * @return array
+	 */
+	public function suggest_custom_fields()
+	{
+		return [];
+	}
+
+	/**
+	 * @todo: this method should be abstract
+	 * @return mixed
+	 */
+	public function describe_automations()
+	{
+		return [];
+	}
+
+	/**
+	 * Execute automation
+	 *
+	 * @param string $name
+	 * @param array $params
+	 * @param array $subscriber_data
+	 *
+	 * @return
+	 */
+	public function exec_automation($name, $params, $subscriber_data)
+	{
+		//TODO: validate automation name and params
+
+		$email = Arr::get($subscriber_data, 'email', '');
+		unset($subscriber_data['email']);
+		if (empty($email) OR ! Valid::email($email))
+		{
+			return $this->add_error('Please enter a valid email', 'email');
+		}
+
+		return $this->{$name}($email, $params, $subscriber_data);
 	}
 }

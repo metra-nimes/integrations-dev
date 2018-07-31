@@ -206,7 +206,7 @@ body {
   color: #fff;
   cursor: pointer;
 }
-.driver-controls input[type="submit"] {
+.driver-controls input[type="button"] {
   margin: 0;
   padding: 0;
   width: 100%;

@@ -116,7 +116,7 @@ class Controller_API extends Controller {
 		}
 
 		parent::after();
-		$this->check_cache();
+		$this->check_cache($this->response->headers('etag'));
 	}
 
 	public function add_error($message, $field = NULL)

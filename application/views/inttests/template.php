@@ -33,18 +33,18 @@
 			<div class="cof-integrations-item is-active">
 				<h2>Credentials</h2>
 				<div class="cof-integrations-item-content">
-					<div class="cof-form-row type_select2" data-name="driver" data-id="cof_driver">
-						<div class="cof-form-row-title"><span>Email Provider</span></div>
-						<div class="cof-form-row-field">
-							<div class="cof-form-row-control"><select name="driver" id="cof_driver" autocomplete="off">
-									<option value="" selected>Choose integration provider ...</option>
-									<?php foreach ($drivers as $driver_id => $driver):?>
-										<option value="<?php echo $driver_id?>"><?php echo $driver?></option>
-									<?php endforeach;?>
-								</select></div><!-- .cof-form-row-control -->
-							<div class="cof-form-row-state"></div>
-						</div>
-					</div><!-- .cof-form-row -->
+					<?php echo View::factory('cof/field', array(
+						'name' => 'driver',
+						'id' => 'cof_driver',
+						'field' => array(
+							'title' => 'Integration Type',
+							'type' => 'select2',
+							'options' => array_merge(['' => 'Choose integration type ...'], $drivers),
+						),
+						'values' => array(
+							'driver' => '',
+						),
+					))->render(); ?>
 					<div class="cof-integrations-credentials i-form"></div>
 					<textarea class="cof-integrations-credentials-textarea"></textarea>
 				</div>
@@ -60,16 +60,6 @@
 					</div>
 				</div>
 
-				<h2>Parameters</h2>
-				<div class="driver-controls-fields for_params">
-					<div class="cof-integrations">
-						<div class="cof-integrations-item is-active">
-							<div class="cof-integrations-item-content">
-								<div class="driver-controls-fields-h i-form"></div>
-							</div>
-						</div>
-					</div>
-				</div>
 				<div class="inttests-form">
 					<h2>Widget Form</h2>
 					<div class="inttests-form-add" title="Append Field"></div>
@@ -100,15 +90,20 @@
 								</div>
 								<div class="conv-form-field-remove" title="Remove Field"></div>
 							</div>
-							<div style="margin: 0 20px;">
-								<input type="submit" value="Submit">
+							<div style='margin: 0 20px 20px;'>
+								<input type="button" value="Get Subscriber" class="for_get">
 							</div>
 						</form>
+					</div>
+				</div>
 
-						<div class="driver-controls-fields-buttons">
-							<div class="driver-controls-fields-button for_get">Get Person</div>
-							<div class="driver-controls-fields-button for_create">Create Person</div>
-							<div class="driver-controls-fields-button for_update">Update Person</div>
+				<h2>Automations (send data to ESP)</h2>
+				<div class="driver-controls-fields for_automations">
+					<div class="cof-integrations">
+						<div class="cof-integrations-item is-active">
+							<div class="cof-integrations-item-content">
+								<div class="driver-controls-fields-h i-form"></div>
+							</div>
 						</div>
 					</div>
 				</div>
