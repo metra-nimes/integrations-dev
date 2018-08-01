@@ -351,6 +351,10 @@ jQuery(function($){
 
 							if (response.data.automations)
 							{
+								this.$automationsSelect
+									.find('.cof-form-row[data-name="automation"]')
+									.remove();
+
 								this.$automationsSelect.prepend(response.data.automations);
 								//Driver selector
 								this.automationSelect = new $cof.Field('.cof-form-row[data-name="automation"]');
