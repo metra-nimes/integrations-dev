@@ -11,7 +11,7 @@ abstract class Integration_OauthDriver extends Integration_Driver{
 		{
 			$this->oauth_get_token();
 		}
-		elseif ($this->get_credentials('oauth.expires_at', 0) < time())
+		elseif ($this->get_credentials('oauth.expires_in', 0) < time())
 		{
 			$this->oauth_refresh_token();
 		}
