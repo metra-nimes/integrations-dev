@@ -235,12 +235,13 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 					'tag_id' => [
 						'title' => 'Tag Name',
 						'description' => NULL,
-						'type' => 'select',
+						'type' => 'select2',
 						'options' => $tags,
 						'classes' => 'i-refreshable',
 						'rules' => [
 							['in_array', [':value', array_keys($tags)]],
 						],
+                        'multiple' => TRUE
 					],
 				],
 			],
@@ -250,12 +251,13 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 					'tag_id' => [
 						'title' => 'Tag Name',
 						'description' => NULL,
-						'type' => 'select',
+						'type' => 'select2',
 						'options' => $tags,
 						'classes' => 'i-refreshable',
 						'rules' => [
 							['in_array', [':value', array_keys($tags)]],
 						],
+                        'multiple' => TRUE
 					],
 				],
 			],
@@ -769,4 +771,100 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 			throw new Integration_Exception(INT_E_WRONG_REQUEST);
 		}
 	}
+
+    public function add_contact_tag($email, $params, $subscriber_data )
+    {
+        $selected_tags = Arr::get($params, 'tag_id');
+        if ( ! isset($selected_tags) )
+            throw new Integration_Exception(INT_E_WRONG_DATA,null,'No Tags Selected');
+
+        $subscriber = $this->get_subscriber($email);
+        if ($subscriber === NULL)
+        {
+            // Create new contact if not exist
+            $this->add_contact_list($email, $params, $subscriber_data );
+        }
+
+        $action = 'contact_tag_add';
+        $tags = [];
+
+        foreach ($selected_tags as $tag_id)
+        {
+            $tags[] = $this->meta['tags'][$tag_id];
+        }
+
+        $r = Integration_Request::factory()
+            ->method('POST')
+            ->curl([
+                CURLOPT_CONNECTTIMEOUT_MS => 15000,
+                CURLOPT_TIMEOUT_MS => 30000,
+            ])
+            ->url($this->get_credentials('api_url', '') . '/admin/api.php')
+            ->header('Content-Type', 'application/x-www-form-urlencoded')
+            ->data([
+                'api_action' => $action,
+                'api_key' => $this->get_credentials('api_key', ''),
+                'api_output' => 'json',
+                'email' => $email,
+                'tags' => $tags
+            ])
+            ->log_to($this->requests_log)
+            ->execute();
+
+        if (!$r->is_successful() OR $r->get('result_code') !== 1) {
+
+            if (strpos($r->get('result_message'), 'not authorized') !== FALSE) {
+                throw new Integration_Exception(INT_E_WRONG_CREDENTIALS, 'api_key', 'Account API Key is not valid');
+            } elseif (strpos($r->get('result_message'), 'This account is currently unavailable') !== FALSE) {
+                throw new Integration_Exception(INT_E_ACCOUNT_LIMITATION, 'api_key', 'This account is currently unavailable');
+            } elseif ($r->code === 508) {
+                throw new Integration_Exception(INT_E_NOT_REACHABLE);
+            }
+            throw new Integration_Exception(INT_E_WRONG_REQUEST,null,$r->get('result_message'));
+        }
+    }
+
+    public function remove_contact_tag($email, $params)
+    {
+        $selected_tags = Arr::get($params, 'tag_id');
+        if ( ! isset($selected_tags) )
+            throw new Integration_Exception(INT_E_WRONG_DATA,null,'No Tags Selected');
+
+        $action = 'contact_tag_remove';
+        $tags = [];
+
+        foreach ($selected_tags as $tag_id)
+        {
+            $tags[] = $this->meta['tags'][$tag_id];
+        }
+
+        $r = Integration_Request::factory()
+            ->method('POST')
+            ->curl([
+                CURLOPT_CONNECTTIMEOUT_MS => 15000,
+                CURLOPT_TIMEOUT_MS => 30000,
+            ])
+            ->url($this->get_credentials('api_url', '') . '/admin/api.php')
+            ->header('Content-Type', 'application/x-www-form-urlencoded')
+            ->data([
+                'api_action' => $action,
+                'api_key' => $this->get_credentials('api_key', ''),
+                'api_output' => 'json',
+                'email' => $email,
+                'tags' => $tags
+            ])
+            ->log_to($this->requests_log)
+            ->execute();
+
+        if (!$r->is_successful() OR $r->get('result_code') !== 1) {
+            if (strpos($r->get('result_message'), 'not authorized') !== FALSE) {
+                throw new Integration_Exception(INT_E_WRONG_CREDENTIALS, 'api_key', 'Account API Key is not valid');
+            } elseif (strpos($r->get('result_message'), 'This account is currently unavailable') !== FALSE) {
+                throw new Integration_Exception(INT_E_ACCOUNT_LIMITATION, 'api_key', 'This account is currently unavailable');
+            } elseif ($r->code === 508) {
+                throw new Integration_Exception(INT_E_NOT_REACHABLE);
+            }
+            throw new Integration_Exception(INT_E_WRONG_REQUEST,null,$r->get('result_message'));
+        }
+    }
 }
