@@ -136,8 +136,10 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 				{
 					throw new Integration_Exception(INT_E_WRONG_CREDENTIALS, 'api_key', 'Account API Key is not valid');
 				}
-
-				throw new Integration_Exception(INT_E_UNKNOWN_ERROR, 'api_key', $r->get('result_message'));
+				elseif (strpos($r->get('result_message'), 'Nothing is returned') !== FALSE)
+                {
+                    Arr::set_path($this->meta, $meta_key, array());
+                }
 			}
 
 			foreach ($r->data as $key => $value)
@@ -183,8 +185,10 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 			{
 				throw new Integration_Exception(INT_E_WRONG_CREDENTIALS, 'api_key', 'Account API Key is not valid');
 			}
-
-			throw new Integration_Exception(INT_E_UNKNOWN_ERROR, 'api_key', $r->get('result_message'));
+            elseif (strpos($r->get('result_message'), 'Nothing is returned') !== FALSE)
+            {
+                Arr::set_path($this->meta, 'lists', array());
+            }
 		}
 
 		foreach ($r->data as $list_data)
@@ -241,7 +245,8 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 						'rules' => [
 							['in_array', [':value', array_keys($tags)]],
 						],
-                        'multiple' => TRUE
+                        'multiple' => TRUE,
+                        'tokenize' => TRUE,
 					],
 				],
 			],
@@ -251,13 +256,12 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 					'tag_id' => [
 						'title' => 'Tag Name',
 						'description' => NULL,
-						'type' => 'select2',
+						'type' => 'select',
 						'options' => $tags,
 						'classes' => 'i-refreshable',
 						'rules' => [
 							['in_array', [':value', array_keys($tags)]],
 						],
-                        'multiple' => TRUE
 					],
 				],
 			],
@@ -701,7 +705,7 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 			// Not found
 			return NULL;
 		}
-		$subscriber_data = $this->translate_int_data_to_subscriber_data($r->get(0));
+		$subscriber_data = $this->translate_int_data_to_subscriber_data($r->get('0'));
 		return $subscriber_data;
 	}
 
@@ -772,99 +776,213 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 		}
 	}
 
-    public function add_contact_tag($email, $params, $subscriber_data )
+	public function remove_contact_list($email, $params)
     {
-        $selected_tags = Arr::get($params, 'tag_id');
-        if ( ! isset($selected_tags) )
-            throw new Integration_Exception(INT_E_WRONG_DATA,null,'No Tags Selected');
+        $current_list = Arr::get($params, 'list_id');
+        if ( ! isset($current_list))
+            throw new Integration_Exception(INT_E_WRONG_PARAMS);
 
         $subscriber = $this->get_subscriber($email);
         if ($subscriber === NULL)
         {
-            // Create new contact if not exist
-            $this->add_contact_list($email, $params, $subscriber_data );
+            return;
         }
 
-        $action = 'contact_tag_add';
-        $tags = [];
+        $this->contact_sync($email,array(
+            'p' => array(
+                $current_list => $current_list
+            ),
+            'status' => array(
+                $current_list => 2
+            )
+        ));
+    }
 
-        foreach ($selected_tags as $tag_id)
-        {
-            $tags[] = $this->meta['tags'][$tag_id];
-        }
-
+    protected function contact_sync($email, $data = array())
+    {
+        $action = 'contact_sync';
         $r = Integration_Request::factory()
             ->method('POST')
             ->curl([
                 CURLOPT_CONNECTTIMEOUT_MS => 15000,
                 CURLOPT_TIMEOUT_MS => 30000,
             ])
-            ->url($this->get_credentials('api_url', '') . '/admin/api.php')
+            ->url($this->get_credentials('api_url', '').'/admin/api.php')
             ->header('Content-Type', 'application/x-www-form-urlencoded')
-            ->data([
+            ->data(array_merge($data,array(
                 'api_action' => $action,
                 'api_key' => $this->get_credentials('api_key', ''),
                 'api_output' => 'json',
                 'email' => $email,
-                'tags' => $tags
-            ])
+                'ip4' => Request::$client_ip,
+            )))
             ->log_to($this->requests_log)
             ->execute();
 
-        if (!$r->is_successful() OR $r->get('result_code') !== 1) {
-
-            if (strpos($r->get('result_message'), 'not authorized') !== FALSE) {
+        if ( ! $r->is_successful() OR $r->get('result_code') !== 1)
+        {
+            if (strpos($r->get('result_message'), 'not authorized') !== FALSE )
+            {
                 throw new Integration_Exception(INT_E_WRONG_CREDENTIALS, 'api_key', 'Account API Key is not valid');
-            } elseif (strpos($r->get('result_message'), 'This account is currently unavailable') !== FALSE) {
+            }
+            elseif (strpos($r->get('result_message'), 'This account is currently unavailable') !== FALSE)
+            {
                 throw new Integration_Exception(INT_E_ACCOUNT_LIMITATION, 'api_key', 'This account is currently unavailable');
-            } elseif ($r->code === 508) {
+            }
+            elseif ($r->code === 508)
+            {
                 throw new Integration_Exception(INT_E_NOT_REACHABLE);
             }
-            throw new Integration_Exception(INT_E_WRONG_REQUEST,null,$r->get('result_message'));
+
+            throw new Integration_Exception(INT_E_WRONG_REQUEST);
+        }
+        else
+        {
+            return $r->get('subscriber_id');
+        }
+    }
+
+    public function add_contact_tag($email, $params, $subscriber_data)
+    {
+        $selected_tags = Arr::get($params, 'tag_id');
+        if ( ! isset($selected_tags))
+            throw new Integration_Exception(INT_E_WRONG_PARAMS);
+
+        $subscriber = $this->get_subscriber($email);
+        if ($subscriber === NULL)
+        {
+            $this->contact_sync($email);
+        }
+
+        $action = 'contact_tag_add';
+
+        $r = Integration_Request::factory()
+            ->method('POST')
+            ->curl(array(
+                CURLOPT_CONNECTTIMEOUT_MS => 15000,
+                CURLOPT_TIMEOUT_MS => 30000,
+            ))
+            ->url($this->get_credentials('api_url', '').'/admin/api.php')
+            ->header('Content-Type', 'application/x-www-form-urlencoded')
+            ->data(array(
+                'api_action' => $action,
+                'api_key' => $this->get_credentials('api_key', ''),
+                'api_output' => 'json',
+                'email' => $email,
+                'tags' => $selected_tags
+            ))
+            ->log_to($this->requests_log)
+            ->execute();
+
+        if ( ! $r->is_successful() OR $r->get('result_code') !== 1)
+        {
+
+            if (strpos($r->get('result_message'), 'not authorized') !== FALSE)
+            {
+                throw new Integration_Exception(INT_E_WRONG_CREDENTIALS, 'api_key', 'Account API Key is not valid');
+            }
+            elseif (strpos($r->get('result_message'), 'This account is currently unavailable') !== FALSE)
+            {
+                throw new Integration_Exception(INT_E_ACCOUNT_LIMITATION, 'api_key', 'This account is currently unavailable');
+            }
+            elseif ($r->code === 508)
+            {
+                throw new Integration_Exception(INT_E_NOT_REACHABLE);
+            }
+            throw new Integration_Exception(INT_E_WRONG_REQUEST);
         }
     }
 
     public function remove_contact_tag($email, $params)
     {
-        $selected_tags = Arr::get($params, 'tag_id');
-        if ( ! isset($selected_tags) )
-            throw new Integration_Exception(INT_E_WRONG_DATA,null,'No Tags Selected');
+        $selected_tag = Arr::get($params, 'tag_id');
+        if ( ! isset($selected_tag))
+            throw new Integration_Exception(INT_E_WRONG_PARAMS);
 
         $action = 'contact_tag_remove';
-        $tags = [];
-
-        foreach ($selected_tags as $tag_id)
-        {
-            $tags[] = $this->meta['tags'][$tag_id];
-        }
 
         $r = Integration_Request::factory()
             ->method('POST')
-            ->curl([
+            ->curl(array(
                 CURLOPT_CONNECTTIMEOUT_MS => 15000,
                 CURLOPT_TIMEOUT_MS => 30000,
-            ])
-            ->url($this->get_credentials('api_url', '') . '/admin/api.php')
+            ))
+            ->url($this->get_credentials('api_url', '').'/admin/api.php')
             ->header('Content-Type', 'application/x-www-form-urlencoded')
-            ->data([
+            ->data(array(
                 'api_action' => $action,
                 'api_key' => $this->get_credentials('api_key', ''),
                 'api_output' => 'json',
                 'email' => $email,
-                'tags' => $tags
-            ])
+                'tags' => $this->meta['tags'][$selected_tag]
+            ))
             ->log_to($this->requests_log)
             ->execute();
 
-        if (!$r->is_successful() OR $r->get('result_code') !== 1) {
-            if (strpos($r->get('result_message'), 'not authorized') !== FALSE) {
+        if ( ! $r->is_successful() OR $r->get('result_code') !== 1) {
+            if (strpos($r->get('result_message'), 'not authorized') !== FALSE)
+            {
                 throw new Integration_Exception(INT_E_WRONG_CREDENTIALS, 'api_key', 'Account API Key is not valid');
-            } elseif (strpos($r->get('result_message'), 'This account is currently unavailable') !== FALSE) {
+            }
+            elseif (strpos($r->get('result_message'), 'This account is currently unavailable') !== FALSE)
+            {
                 throw new Integration_Exception(INT_E_ACCOUNT_LIMITATION, 'api_key', 'This account is currently unavailable');
-            } elseif ($r->code === 508) {
+            }
+            elseif ($r->code === 508)
+            {
                 throw new Integration_Exception(INT_E_NOT_REACHABLE);
             }
-            throw new Integration_Exception(INT_E_WRONG_REQUEST,null,$r->get('result_message'));
+            throw new Integration_Exception(INT_E_WRONG_REQUEST);
+        }
+    }
+
+    public function add_contact_note($email, $params)
+    {
+        $note = Arr::get($params, 'text');
+        if ( ! isset($note) OR empty($note))
+            throw new Integration_Exception(INT_E_WRONG_PARAMS);
+
+        $subscriber = $this->get_subscriber($email);
+        $subscriber_id = ($subscriber === NULL) ? $this->contact_sync($email) : Arr::path($subscriber, '$integration.id');
+
+        if ( ! isset($subscriber_id) OR empty($subscriber_id))
+            throw new Integration_Exception(INT_E_WRONG_REQUEST);
+
+        $action = 'contact_note_add';
+
+        $r = Integration_Request::factory()
+            ->method('POST')
+            ->curl(array(
+                CURLOPT_CONNECTTIMEOUT_MS => 15000,
+                CURLOPT_TIMEOUT_MS => 30000,
+            ))
+            ->url($this->get_credentials('api_url', '').'/admin/api.php')
+            ->header('Content-Type', 'application/x-www-form-urlencoded')
+            ->data(array(
+                'api_action' => $action,
+                'api_key' => $this->get_credentials('api_key', ''),
+                'api_output' => 'json',
+                'id' => $subscriber_id,
+                'note' => $note,
+                'listid' => 0
+            ))
+            ->log_to($this->requests_log)
+            ->execute();
+
+        if ( ! $r->is_successful() OR $r->get('result_code') !== 1) {
+            if (strpos($r->get('result_message'), 'not authorized') !== FALSE)
+            {
+                throw new Integration_Exception(INT_E_WRONG_CREDENTIALS, 'api_key', 'Account API Key is not valid');
+            }
+            elseif (strpos($r->get('result_message'), 'This account is currently unavailable') !== FALSE)
+            {
+                throw new Integration_Exception(INT_E_ACCOUNT_LIMITATION, 'api_key', 'This account is currently unavailable');
+            }
+            elseif ($r->code === 508)
+            {
+                throw new Integration_Exception(INT_E_NOT_REACHABLE);
+            }
+            throw new Integration_Exception(INT_E_WRONG_REQUEST);
         }
     }
 }
