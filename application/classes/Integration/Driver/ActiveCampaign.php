@@ -99,8 +99,8 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 		$meta_actions = [
 			'tags' => 'tags_list',
 			'automations' => 'automation_list',
-			//'deal_pipelines' => 'deal_pipeline_list',
-			//'deal_stages' => 'deal_stage_list',
+			'deal_pipelines' => 'deal_pipeline_list',
+			'deal_stages' => 'deal_stage_list',
 			'forms' => 'form_getforms'
 		];
 
@@ -147,8 +147,18 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 				$id = Arr::get($value, 'id', 0);
 				if (is_numeric($key) AND $id)
 				{
-
-					Arr::set_path($this->meta, $meta_key.'.'.$id, Arr::get($value, 'name'));
+					switch ($meta_key)
+					{
+						case 'deal_pipelines':
+							Arr::set_path($this->meta, $meta_key.'.'.$id, Arr::get($value, 'title'));
+							break;
+						case 'deal_stages':
+							Arr::set_path($this->meta, $meta_key.'.'.Arr::get($value, 'pipeline').'.'.$id, Arr::get($value, 'title'));
+							break;
+						default:
+							Arr::set_path($this->meta, $meta_key.'.'.$id, Arr::get($value, 'name'));
+							break;
+					}
 				}
 			}
 
@@ -314,10 +324,14 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 						'description' => NULL,
 						'type' => 'select',
 						'options' => $stages,
+						'options_labels' => $pipelines,
 						'classes' => 'i-refreshable',
 						'rules' => [
 							['in_array', [':value', array_keys($stages)]],
 						],
+						'influence' => array(
+							'deal_pipeline'
+						)
 					],
 				],
 			],
@@ -329,10 +343,14 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 						'description' => NULL,
 						'type' => 'select',
 						'options' => $stages,
+						'options_labels' => $pipelines,
 						'classes' => 'i-refreshable',
 						'rules' => [
 							['in_array', [':value', array_keys($stages)]],
 						],
+						'influence' => array(
+							'deal_pipeline'
+						)
 					],
 				],
 			],
@@ -985,4 +1003,218 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
             throw new Integration_Exception(INT_E_WRONG_REQUEST);
         }
     }
+
+    public function create_deal($email, $params)
+	{
+		$pipeline = Arr::get($params, 'pipeline_id');
+		$stage = Arr::get($params, 'stage_id');
+		if ( ! isset($pipeline) OR ! isset($stage))
+			throw new Integration_Exception(INT_E_WRONG_PARAMS);
+
+		$subscriber = $this->get_subscriber($email);
+		$subscriber_id = ($subscriber === NULL) ? $this->contact_sync($email) : Arr::path($subscriber, '$integration.id');
+
+		if ( ! isset($subscriber_id) OR empty($subscriber_id))
+			throw new Integration_Exception(INT_E_WRONG_REQUEST);
+
+		$action = 'deal_add';
+
+		$r = Integration_Request::factory()
+			->method('POST')
+			->curl(array(
+				CURLOPT_CONNECTTIMEOUT_MS => 15000,
+				CURLOPT_TIMEOUT_MS => 30000,
+			))
+			->url($this->get_credentials('api_url', '').'/admin/api.php')
+			->header('Content-Type', 'application/x-www-form-urlencoded')
+			->data(array(
+				'api_action' => $action,
+				'api_key' => $this->get_credentials('api_key', ''),
+				'api_output' => 'json',
+				'pipeline' => $pipeline,
+				'stage' => $stage,
+				'title' => 'Deal',
+				'value' => '0',
+				'currency' => 'usd',
+				'contactid' => $subscriber_id,
+			))
+			->log_to($this->requests_log)
+			->execute();
+
+		if ( ! $r->is_successful() OR $r->get('result_code') !== 1) {
+			if (strpos($r->get('result_message'), 'not authorized') !== FALSE)
+			{
+				throw new Integration_Exception(INT_E_WRONG_CREDENTIALS, 'api_key', 'Account API Key is not valid');
+			}
+			elseif (strpos($r->get('result_message'), 'This account is currently unavailable') !== FALSE)
+			{
+				throw new Integration_Exception(INT_E_ACCOUNT_LIMITATION, 'api_key', 'This account is currently unavailable');
+			}
+			elseif ($r->code === 508)
+			{
+				throw new Integration_Exception(INT_E_NOT_REACHABLE);
+			}
+			elseif (strpos($r->get('result_message'), 'The provided stage does not exist or is not part of the pipeline provided') !== FALSE)
+			{
+				throw new Integration_Exception(INT_E_WRONG_PARAMS);
+			}
+			throw new Integration_Exception(INT_E_WRONG_REQUEST);
+		}
+	}
+
+	public function update_deal_stage($email, $params)
+	{
+		$stage = Arr::get($params, 'stage_id');
+		if ( ! isset($stage))
+			throw new Integration_Exception(INT_E_WRONG_PARAMS);
+
+		$subscriber = $this->get_subscriber($email);
+		if ($subscriber === NULL)
+			throw new Integration_Exception(INT_E_WRONG_REQUEST);
+
+		$action = 'deal_list';
+
+		$r = Integration_Request::factory()
+			->method('POST')
+			->curl(array(
+				CURLOPT_CONNECTTIMEOUT_MS => 15000,
+				CURLOPT_TIMEOUT_MS => 30000,
+			))
+			->url($this->get_credentials('api_url', '').'/admin/api.php')
+			->header('Content-Type', 'application/x-www-form-urlencoded')
+			->data(array(
+				'api_action' => $action,
+				'api_key' => $this->get_credentials('api_key', ''),
+				'api_output' => 'json',
+				'filters' => array(
+					'status' => 0,
+					'email' => $email,
+					'stage' => $stage
+				)
+			))
+			->log_to($this->requests_log)
+			->execute();
+
+		if ( ! $r->is_successful() OR $r->get('result_code') !== 1) {
+			if (strpos($r->get('result_message'), 'not authorized') !== FALSE)
+			{
+				throw new Integration_Exception(INT_E_WRONG_CREDENTIALS, 'api_key', 'Account API Key is not valid');
+			}
+			elseif (strpos($r->get('result_message'), 'This account is currently unavailable') !== FALSE)
+			{
+				throw new Integration_Exception(INT_E_ACCOUNT_LIMITATION, 'api_key', 'This account is currently unavailable');
+			}
+			elseif ($r->code === 508)
+			{
+				throw new Integration_Exception(INT_E_NOT_REACHABLE);
+			}
+			throw new Integration_Exception(INT_E_WRONG_REQUEST);
+		}
+		else {
+			$deals = $r->get('deals');
+			if ( ! empty($deals))
+			{
+				usort($deals, function($deal_1,$deal_2)
+					{
+						return strtotime($deal_1['created']) < strtotime($deal_2['created']);
+					}
+				);
+				$curent_deal = array_shift($deals);
+			}
+		}
+	}
+
+	public function add_contact_to_automation($email, $params)
+	{
+		$automation = Arr::get($params, 'automation_id');
+		if ( ! isset($automation))
+			throw new Integration_Exception(INT_E_WRONG_PARAMS);
+
+		$subscriber = $this->get_subscriber($email);
+		if ($subscriber === NULL)
+			throw new Integration_Exception(INT_E_WRONG_REQUEST);
+
+		$action = 'automation_contact_add';
+
+		$r = Integration_Request::factory()
+			->method('POST')
+			->curl(array(
+				CURLOPT_CONNECTTIMEOUT_MS => 15000,
+				CURLOPT_TIMEOUT_MS => 30000,
+			))
+			->url($this->get_credentials('api_url', '').'/admin/api.php')
+			->header('Content-Type', 'application/x-www-form-urlencoded')
+			->data(array(
+				'api_action' => $action,
+				'api_key' => $this->get_credentials('api_key', ''),
+				'api_output' => 'json',
+				'automation' => $automation,
+				'contact_email' => $email
+			))
+			->log_to($this->requests_log)
+			->execute();
+
+		if ( ! $r->is_successful() OR $r->get('result_code') !== 1) {
+			if (strpos($r->get('result_message'), 'not authorized') !== FALSE)
+			{
+				throw new Integration_Exception(INT_E_WRONG_CREDENTIALS, 'api_key', 'Account API Key is not valid');
+			}
+			elseif (strpos($r->get('result_message'), 'This account is currently unavailable') !== FALSE)
+			{
+				throw new Integration_Exception(INT_E_ACCOUNT_LIMITATION, 'api_key', 'This account is currently unavailable');
+			}
+			elseif ($r->code === 508)
+			{
+				throw new Integration_Exception(INT_E_NOT_REACHABLE);
+			}
+			throw new Integration_Exception(INT_E_WRONG_REQUEST);
+		}
+	}
+
+	public function remove_contact_from_automation($email, $params)
+	{
+		$automation = Arr::get($params, 'automation_id');
+		if ( ! isset($automation))
+			throw new Integration_Exception(INT_E_WRONG_PARAMS);
+
+		$subscriber = $this->get_subscriber($email);
+		if ($subscriber === NULL)
+			throw new Integration_Exception(INT_E_WRONG_REQUEST);
+
+		$action = 'automation_contact_remove';
+
+		$r = Integration_Request::factory()
+			->method('POST')
+			->curl(array(
+				CURLOPT_CONNECTTIMEOUT_MS => 15000,
+				CURLOPT_TIMEOUT_MS => 30000,
+			))
+			->url($this->get_credentials('api_url', '').'/admin/api.php')
+			->header('Content-Type', 'application/x-www-form-urlencoded')
+			->data(array(
+				'api_action' => $action,
+				'api_key' => $this->get_credentials('api_key', ''),
+				'api_output' => 'json',
+				'automation' => $automation,
+				'contact_email' => $email
+			))
+			->log_to($this->requests_log)
+			->execute();
+
+		if ( ! $r->is_successful() OR $r->get('result_code') !== 1) {
+			if (strpos($r->get('result_message'), 'not authorized') !== FALSE)
+			{
+				throw new Integration_Exception(INT_E_WRONG_CREDENTIALS, 'api_key', 'Account API Key is not valid');
+			}
+			elseif (strpos($r->get('result_message'), 'This account is currently unavailable') !== FALSE)
+			{
+				throw new Integration_Exception(INT_E_ACCOUNT_LIMITATION, 'api_key', 'This account is currently unavailable');
+			}
+			elseif ($r->code === 508)
+			{
+				throw new Integration_Exception(INT_E_NOT_REACHABLE);
+			}
+			throw new Integration_Exception(INT_E_WRONG_REQUEST);
+		}
+	}
 }
