@@ -326,3 +326,6 @@ pre {
   -webkit-animation: highlight 500ms;
           animation: highlight 500ms;
 }
+select:focus option.holder {
+  display: none;
+}

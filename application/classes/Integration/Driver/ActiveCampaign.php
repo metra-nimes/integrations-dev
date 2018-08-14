@@ -130,7 +130,7 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 			{
 				if (strpos($r->get('result_message'), 'This account is currently unavailable') !== FALSE)
 				{
-					throw new Integration_Exception(INT_E_ACCOUNT_LIMITATION, 'api_key', 'This account is currently unavailable');
+					throw new Integration_Exception(INT_E_WRONG_CREDENTIALS, 'api_key', 'This account is currently unavailable');
 				}
 				elseif (strpos($r->get('result_message'), 'not authorized') !== FALSE)
 				{
@@ -161,35 +161,34 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 					}
 				}
 			}
-
-			// Get account lists
-			// http://www.activecampaign.com/api/example.php?call=list_list
-			$r = Integration_Request::factory()
-				->method('GET')
-				->url($this->get_credentials('api_url', '').'/admin/api.php')
-				->curl(array(
-					CURLOPT_CONNECTTIMEOUT_MS => 15000,
-					CURLOPT_TIMEOUT_MS => 30000,
-				))
-				->data(array(
-					'api_action' => 'list_list',
-					'api_key' => $this->get_credentials('api_key', ''),
-					'api_output' => 'json',
-					'ids' => 'all',
-					'global_fields' => '1',
-					// Needed to gain fields
-					'full' => '1',
-				))
-				->log_to($this->requests_log)
-				->execute();
-
 		}
+
+		// Get account lists
+		// http://www.activecampaign.com/api/example.php?call=list_list
+		$r = Integration_Request::factory()
+			->method('GET')
+			->url($this->get_credentials('api_url', '').'/admin/api.php')
+			->curl(array(
+				CURLOPT_CONNECTTIMEOUT_MS => 15000,
+				CURLOPT_TIMEOUT_MS => 30000,
+			))
+			->data(array(
+				'api_action' => 'list_list',
+				'api_key' => $this->get_credentials('api_key', ''),
+				'api_output' => 'json',
+				'ids' => 'all',
+				'global_fields' => '1',
+				// Needed to gain fields
+				'full' => '1',
+			))
+			->log_to($this->requests_log)
+			->execute();
 
 		if ( ! $r->is_successful() OR $r->get('result_code') === 0)
 		{
 			if (strpos($r->get('result_message'), 'This account is currently unavailable') !== FALSE)
 			{
-				throw new Integration_Exception(INT_E_ACCOUNT_LIMITATION, 'api_key', 'This account is currently unavailable');
+				throw new Integration_Exception(INT_E_WRONG_CREDENTIALS, 'api_key', 'This account is currently unavailable');
 			}
 			elseif (strpos($r->get('result_message'), 'not authorized') !== FALSE)
 			{
@@ -267,11 +266,14 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 						'title' => 'Tag Name',
 						'description' => NULL,
 						'type' => 'select',
-						'options' => $tags,
+						'options' => Arr::merge([
+							'' => '(Not specified)'
+						],$tags),
 						'classes' => 'i-refreshable',
 						'rules' => [
 							['in_array', [':value', array_keys($tags)]],
 						],
+						'placeholder' => TRUE
 					],
 				],
 			],
@@ -282,11 +284,14 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 						'title' => 'List Name',
 						'description' => NULL,
 						'type' => 'select',
-						'options' => $lists,
+						'options' => Arr::merge([
+							'' => '(Not specified)'
+						],$lists),
 						'classes' => 'i-refreshable',
 						'rules' => [
 							['in_array', [':value', array_keys($lists)]],
 						],
+						'placeholder' => TRUE
 					],
 				],
 				'is_default' => TRUE,
@@ -298,11 +303,14 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 						'title' => 'List Name',
 						'description' => NULL,
 						'type' => 'select',
-						'options' => $lists,
+						'options' => Arr::merge([
+							'' => '(Not specified)'
+						],$lists),
 						'classes' => 'i-refreshable',
 						'rules' => [
 							['in_array', [':value', array_keys($lists)]],
 						],
+						'placeholder' => TRUE
 					],
 				],
 			],
@@ -313,25 +321,31 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 						'title' => 'Pipeline Name',
 						'description' => NULL,
 						'type' => 'select',
-						'options' => $pipelines,
+						'options' => Arr::merge([
+							'' => '(Not specified)'
+						],$pipelines),
 						'classes' => 'i-refreshable',
 						'rules' => [
 							['in_array', [':value', array_keys($pipelines)]],
 						],
+						'placeholder' => TRUE
 					],
 					'stage_id' => [
 						'title' => 'Stage Name',
 						'description' => NULL,
 						'type' => 'select',
-						'options' => $stages,
+						'options' => Arr::merge([
+							'' => '(Not specified)'
+						],$stages),
 						'options_labels' => $pipelines,
 						'classes' => 'i-refreshable',
 						'rules' => [
 							['in_array', [':value', array_keys($stages)]],
 						],
-						'influence' => array(
+						'influence' => [
 							'deal_pipeline'
-						)
+						],
+						'placeholder' => TRUE
 					],
 				],
 			],
@@ -342,15 +356,18 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 						'title' => 'Stage Name',
 						'description' => NULL,
 						'type' => 'select',
-						'options' => $stages,
+						'options' => Arr::merge([
+							'' => '(Not specified)'
+						],$stages),
 						'options_labels' => $pipelines,
 						'classes' => 'i-refreshable',
 						'rules' => [
 							['in_array', [':value', array_keys($stages)]],
 						],
-						'influence' => array(
+						'influence' => [
 							'deal_pipeline'
-						)
+						],
+						'placeholder' => TRUE
 					],
 				],
 			],
@@ -361,11 +378,14 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 						'title' => 'Automation Name',
 						'description' => NULL,
 						'type' => 'select',
-						'options' => $automations,
+						'options' => Arr::merge([
+							'' => '(Not specified)'
+						],$automations),
 						'classes' => 'i-refreshable',
 						'rules' => [
 							['in_array', [':value', array_keys($automations)]],
 						],
+						'placeholder' => TRUE
 					],
 				],
 			],
@@ -376,11 +396,14 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 						'title' => 'Automation Name',
 						'description' => NULL,
 						'type' => 'select',
-						'options' => $automations,
+						'options' => Arr::merge([
+							'' => '(Not specified)'
+						],$automations),
 						'classes' => 'i-refreshable',
 						'rules' => [
 							['in_array', [':value', array_keys($automations)]],
 						],
+						'placeholder' => TRUE
 					],
 				],
 			],
@@ -457,7 +480,7 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 				}
 				elseif ($r->get('result_code') === 0 AND strpos($r->get('result_message'), 'This account is currently unavailable') !== FALSE)
 				{
-					throw new Integration_Exception(INT_E_ACCOUNT_LIMITATION, 'api_key', 'This account is currently unavailable');
+					throw new Integration_Exception(INT_E_WRONG_CREDENTIALS, 'api_key', 'This account is currently unavailable');
 				}
 				elseif ($r->get('result_code') === 0 AND strpos($r->get('result_message'), 'not authorized') !== FALSE)
 				{
@@ -500,7 +523,7 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 		}
 		elseif ($r->get('result_code') === 0 AND strpos($r->get('result_message'), 'This account is currently unavailable') !== FALSE)
 		{
-			throw new Integration_Exception(INT_E_ACCOUNT_LIMITATION, 'api_key', 'This account is currently unavailable');
+			throw new Integration_Exception(INT_E_WRONG_CREDENTIALS, 'api_key', 'This account is currently unavailable');
 		}
 		elseif ($r->get('result_code') === 0 AND strpos($r->get('result_message'), 'not authorized') !== FALSE)
 		{
@@ -711,7 +734,7 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 		}
 		elseif ($r->get('result_code') === 0 AND strpos($r->get('result_message'), 'This account is currently unavailable') !== FALSE)
 		{
-			throw new Integration_Exception(INT_E_ACCOUNT_LIMITATION, 'api_key', 'This account is currently unavailable');
+			throw new Integration_Exception(INT_E_WRONG_CREDENTIALS, 'api_key', 'This account is currently unavailable');
 		}
 		elseif ($r->get('result_code') === 0 AND strpos($r->get('result_message'), 'not authorized') !== FALSE)
 		{
@@ -732,6 +755,10 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 	{
 		$int_data = $this->translate_subscriber_data_to_int_data($subscriber_data, TRUE);
 		$current_list = Arr::get($params, 'list_id');
+		if ( ! isset($current_list) OR empty($current_list))
+		{
+			throw new Integration_Exception(INT_E_WRONG_PARAMS);
+		}
 
 		$subscriber = $this->get_subscriber($email);
 		if ($subscriber === NULL)
@@ -783,11 +810,11 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 			}
 			elseif (strpos($r->get('result_message'), 'This account is currently unavailable') !== FALSE)
 			{
-				throw new Integration_Exception(INT_E_ACCOUNT_LIMITATION, 'api_key', 'This account is currently unavailable');
+				throw new Integration_Exception(INT_E_WRONG_CREDENTIALS, 'api_key', 'This account is currently unavailable');
 			}
 			elseif ($r->code === 508)
 			{
-				throw new Integration_Exception(INT_E_NOT_REACHABLE);
+				throw new Integration_Exception(INT_E_FREQUENT_TEMPORARY_ERR);
 			}
 			// Not 100% sure about this part: maybe result_code could be 0 for some other cases
 			throw new Integration_Exception(INT_E_WRONG_REQUEST);
@@ -797,8 +824,10 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 	public function remove_contact_list($email, $params)
     {
         $current_list = Arr::get($params, 'list_id');
-        if ( ! isset($current_list))
-            throw new Integration_Exception(INT_E_WRONG_PARAMS);
+        if ( ! isset($current_list) OR empty($current_list))
+        {
+			throw new Integration_Exception(INT_E_WRONG_PARAMS);
+		}
 
         $subscriber = $this->get_subscriber($email);
         if ($subscriber === NULL)
@@ -845,11 +874,11 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
             }
             elseif (strpos($r->get('result_message'), 'This account is currently unavailable') !== FALSE)
             {
-                throw new Integration_Exception(INT_E_ACCOUNT_LIMITATION, 'api_key', 'This account is currently unavailable');
+                throw new Integration_Exception(INT_E_WRONG_CREDENTIALS, 'api_key', 'This account is currently unavailable');
             }
             elseif ($r->code === 508)
             {
-                throw new Integration_Exception(INT_E_NOT_REACHABLE);
+                throw new Integration_Exception(INT_E_FREQUENT_TEMPORARY_ERR);
             }
 
             throw new Integration_Exception(INT_E_WRONG_REQUEST);
@@ -864,7 +893,9 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
     {
         $selected_tags = Arr::get($params, 'tag_id');
         if ( ! isset($selected_tags))
-            throw new Integration_Exception(INT_E_WRONG_PARAMS);
+        {
+			throw new Integration_Exception(INT_E_WRONG_PARAMS);
+		}
 
         $subscriber = $this->get_subscriber($email);
         if ($subscriber === NULL)
@@ -901,11 +932,11 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
             }
             elseif (strpos($r->get('result_message'), 'This account is currently unavailable') !== FALSE)
             {
-                throw new Integration_Exception(INT_E_ACCOUNT_LIMITATION, 'api_key', 'This account is currently unavailable');
+                throw new Integration_Exception(INT_E_WRONG_CREDENTIALS, 'api_key', 'This account is currently unavailable');
             }
             elseif ($r->code === 508)
             {
-                throw new Integration_Exception(INT_E_NOT_REACHABLE);
+                throw new Integration_Exception(INT_E_FREQUENT_TEMPORARY_ERR);
             }
             throw new Integration_Exception(INT_E_WRONG_REQUEST);
         }
@@ -914,8 +945,10 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
     public function remove_contact_tag($email, $params)
     {
         $selected_tag = Arr::get($params, 'tag_id');
-        if ( ! isset($selected_tag))
-            throw new Integration_Exception(INT_E_WRONG_PARAMS);
+        if ( ! isset($selected_tag) OR empty($selected_tag))
+        {
+			throw new Integration_Exception(INT_E_WRONG_PARAMS);
+		}
 
         $action = 'contact_tag_remove';
 
@@ -937,18 +970,19 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
             ->log_to($this->requests_log)
             ->execute();
 
-        if ( ! $r->is_successful() OR $r->get('result_code') !== 1) {
+        if ( ! $r->is_successful() OR $r->get('result_code') !== 1)
+        {
             if (strpos($r->get('result_message'), 'not authorized') !== FALSE)
             {
                 throw new Integration_Exception(INT_E_WRONG_CREDENTIALS, 'api_key', 'Account API Key is not valid');
             }
             elseif (strpos($r->get('result_message'), 'This account is currently unavailable') !== FALSE)
             {
-                throw new Integration_Exception(INT_E_ACCOUNT_LIMITATION, 'api_key', 'This account is currently unavailable');
+                throw new Integration_Exception(INT_E_WRONG_CREDENTIALS, 'api_key', 'This account is currently unavailable');
             }
             elseif ($r->code === 508)
             {
-                throw new Integration_Exception(INT_E_NOT_REACHABLE);
+                throw new Integration_Exception(INT_E_FREQUENT_TEMPORARY_ERR);
             }
             throw new Integration_Exception(INT_E_WRONG_REQUEST);
         }
@@ -958,13 +992,17 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
     {
         $note = Arr::get($params, 'text');
         if ( ! isset($note) OR empty($note))
-            throw new Integration_Exception(INT_E_WRONG_PARAMS);
+        {
+			throw new Integration_Exception(INT_E_WRONG_PARAMS);
+		}
 
         $subscriber = $this->get_subscriber($email);
         $subscriber_id = ($subscriber === NULL) ? $this->contact_sync($email) : Arr::path($subscriber, '$integration.id');
 
         if ( ! isset($subscriber_id) OR empty($subscriber_id))
-            throw new Integration_Exception(INT_E_WRONG_REQUEST);
+        {
+			throw new Integration_Exception(INT_E_WRONG_REQUEST);
+		}
 
         $action = 'contact_note_add';
 
@@ -987,18 +1025,19 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
             ->log_to($this->requests_log)
             ->execute();
 
-        if ( ! $r->is_successful() OR $r->get('result_code') !== 1) {
+        if ( ! $r->is_successful() OR $r->get('result_code') !== 1)
+        {
             if (strpos($r->get('result_message'), 'not authorized') !== FALSE)
             {
                 throw new Integration_Exception(INT_E_WRONG_CREDENTIALS, 'api_key', 'Account API Key is not valid');
             }
             elseif (strpos($r->get('result_message'), 'This account is currently unavailable') !== FALSE)
             {
-                throw new Integration_Exception(INT_E_ACCOUNT_LIMITATION, 'api_key', 'This account is currently unavailable');
+                throw new Integration_Exception(INT_E_WRONG_CREDENTIALS, 'api_key', 'This account is currently unavailable');
             }
             elseif ($r->code === 508)
             {
-                throw new Integration_Exception(INT_E_NOT_REACHABLE);
+                throw new Integration_Exception(INT_E_FREQUENT_TEMPORARY_ERR);
             }
             throw new Integration_Exception(INT_E_WRONG_REQUEST);
         }
@@ -1008,14 +1047,18 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 	{
 		$pipeline = Arr::get($params, 'pipeline_id');
 		$stage = Arr::get($params, 'stage_id');
-		if ( ! isset($pipeline) OR ! isset($stage))
+		if ( ! isset($pipeline) OR ! isset($stage) OR empty($pipeline) OR empty($stage))
+		{
 			throw new Integration_Exception(INT_E_WRONG_PARAMS);
+		}
 
 		$subscriber = $this->get_subscriber($email);
 		$subscriber_id = ($subscriber === NULL) ? $this->contact_sync($email) : Arr::path($subscriber, '$integration.id');
 
 		if ( ! isset($subscriber_id) OR empty($subscriber_id))
+		{
 			throw new Integration_Exception(INT_E_WRONG_REQUEST);
+		}
 
 		$action = 'deal_add';
 
@@ -1041,18 +1084,19 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 			->log_to($this->requests_log)
 			->execute();
 
-		if ( ! $r->is_successful() OR $r->get('result_code') !== 1) {
+		if ( ! $r->is_successful() OR $r->get('result_code') !== 1)
+		{
 			if (strpos($r->get('result_message'), 'not authorized') !== FALSE)
 			{
 				throw new Integration_Exception(INT_E_WRONG_CREDENTIALS, 'api_key', 'Account API Key is not valid');
 			}
 			elseif (strpos($r->get('result_message'), 'This account is currently unavailable') !== FALSE)
 			{
-				throw new Integration_Exception(INT_E_ACCOUNT_LIMITATION, 'api_key', 'This account is currently unavailable');
+				throw new Integration_Exception(INT_E_WRONG_CREDENTIALS, 'api_key', 'This account is currently unavailable');
 			}
 			elseif ($r->code === 508)
 			{
-				throw new Integration_Exception(INT_E_NOT_REACHABLE);
+				throw new Integration_Exception(INT_E_FREQUENT_TEMPORARY_ERR);
 			}
 			elseif (strpos($r->get('result_message'), 'The provided stage does not exist or is not part of the pipeline provided') !== FALSE)
 			{
@@ -1065,12 +1109,16 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 	public function update_deal_stage($email, $params)
 	{
 		$stage = Arr::get($params, 'stage_id');
-		if ( ! isset($stage))
+		if ( ! isset($stage) OR empty($stage))
+		{
 			throw new Integration_Exception(INT_E_WRONG_PARAMS);
+		}
 
 		$subscriber = $this->get_subscriber($email);
 		if ($subscriber === NULL)
+		{
 			throw new Integration_Exception(INT_E_WRONG_REQUEST);
+		}
 
 		$action = 'deal_list';
 
@@ -1095,18 +1143,19 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 			->log_to($this->requests_log)
 			->execute();
 
-		if ( ! $r->is_successful() OR $r->get('result_code') !== 1) {
+		if ( ! $r->is_successful() OR $r->get('result_code') !== 1)
+		{
 			if (strpos($r->get('result_message'), 'not authorized') !== FALSE)
 			{
 				throw new Integration_Exception(INT_E_WRONG_CREDENTIALS, 'api_key', 'Account API Key is not valid');
 			}
 			elseif (strpos($r->get('result_message'), 'This account is currently unavailable') !== FALSE)
 			{
-				throw new Integration_Exception(INT_E_ACCOUNT_LIMITATION, 'api_key', 'This account is currently unavailable');
+				throw new Integration_Exception(INT_E_WRONG_CREDENTIALS, 'api_key', 'This account is currently unavailable');
 			}
 			elseif ($r->code === 508)
 			{
-				throw new Integration_Exception(INT_E_NOT_REACHABLE);
+				throw new Integration_Exception(INT_E_FREQUENT_TEMPORARY_ERR);
 			}
 			throw new Integration_Exception(INT_E_WRONG_REQUEST);
 		}
@@ -1127,12 +1176,16 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 	public function add_contact_to_automation($email, $params)
 	{
 		$automation = Arr::get($params, 'automation_id');
-		if ( ! isset($automation))
+		if ( ! isset($automation) OR empty($automation))
+		{
 			throw new Integration_Exception(INT_E_WRONG_PARAMS);
+		}
 
 		$subscriber = $this->get_subscriber($email);
 		if ($subscriber === NULL)
+		{
 			throw new Integration_Exception(INT_E_WRONG_REQUEST);
+		}
 
 		$action = 'automation_contact_add';
 
@@ -1154,18 +1207,19 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 			->log_to($this->requests_log)
 			->execute();
 
-		if ( ! $r->is_successful() OR $r->get('result_code') !== 1) {
+		if ( ! $r->is_successful() OR $r->get('result_code') !== 1)
+		{
 			if (strpos($r->get('result_message'), 'not authorized') !== FALSE)
 			{
 				throw new Integration_Exception(INT_E_WRONG_CREDENTIALS, 'api_key', 'Account API Key is not valid');
 			}
 			elseif (strpos($r->get('result_message'), 'This account is currently unavailable') !== FALSE)
 			{
-				throw new Integration_Exception(INT_E_ACCOUNT_LIMITATION, 'api_key', 'This account is currently unavailable');
+				throw new Integration_Exception(INT_E_WRONG_CREDENTIALS, 'api_key', 'This account is currently unavailable');
 			}
 			elseif ($r->code === 508)
 			{
-				throw new Integration_Exception(INT_E_NOT_REACHABLE);
+				throw new Integration_Exception(INT_E_FREQUENT_TEMPORARY_ERR);
 			}
 			throw new Integration_Exception(INT_E_WRONG_REQUEST);
 		}
@@ -1174,12 +1228,15 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 	public function remove_contact_from_automation($email, $params)
 	{
 		$automation = Arr::get($params, 'automation_id');
-		if ( ! isset($automation))
+		if ( ! isset($automation) OR empty($automation))
+		{
 			throw new Integration_Exception(INT_E_WRONG_PARAMS);
-
+		}
 		$subscriber = $this->get_subscriber($email);
 		if ($subscriber === NULL)
+		{
 			throw new Integration_Exception(INT_E_WRONG_REQUEST);
+		}
 
 		$action = 'automation_contact_remove';
 
@@ -1201,18 +1258,19 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 			->log_to($this->requests_log)
 			->execute();
 
-		if ( ! $r->is_successful() OR $r->get('result_code') !== 1) {
+		if ( ! $r->is_successful() OR $r->get('result_code') !== 1)
+		{
 			if (strpos($r->get('result_message'), 'not authorized') !== FALSE)
 			{
 				throw new Integration_Exception(INT_E_WRONG_CREDENTIALS, 'api_key', 'Account API Key is not valid');
 			}
 			elseif (strpos($r->get('result_message'), 'This account is currently unavailable') !== FALSE)
 			{
-				throw new Integration_Exception(INT_E_ACCOUNT_LIMITATION, 'api_key', 'This account is currently unavailable');
+				throw new Integration_Exception(INT_E_WRONG_CREDENTIALS, 'api_key', 'This account is currently unavailable');
 			}
 			elseif ($r->code === 508)
 			{
-				throw new Integration_Exception(INT_E_NOT_REACHABLE);
+				throw new Integration_Exception(INT_E_FREQUENT_TEMPORARY_ERR);
 			}
 			throw new Integration_Exception(INT_E_WRONG_REQUEST);
 		}
