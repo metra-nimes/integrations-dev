@@ -248,14 +248,15 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 					'tag_id' => [
 						'title' => 'Tag Name',
 						'description' => NULL,
-						'type' => 'select2',
-						'options' => $tags,
+						'type' => 'select',
+						'options' => Arr::merge([
+							'' => '(Not specified)'
+						],$tags),
 						'classes' => 'i-refreshable',
 						'rules' => [
 							['in_array', [':value', array_keys($tags)]],
 						],
-                        'multiple' => TRUE,
-                        'tokenize' => TRUE,
+						'placeholder' => TRUE
 					],
 				],
 			],
@@ -891,8 +892,8 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 
     public function add_contact_tag($email, $params, $subscriber_data)
     {
-        $selected_tags = Arr::get($params, 'tag_id');
-        if ( ! isset($selected_tags))
+        $selected_tag = Arr::get($params, 'tag_id');
+        if ( ! isset($selected_tag))
         {
 			throw new Integration_Exception(INT_E_WRONG_PARAMS);
 		}
@@ -918,7 +919,7 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
                 'api_key' => $this->get_credentials('api_key', ''),
                 'api_output' => 'json',
                 'email' => $email,
-                'tags' => $selected_tags
+                'tags' => $this->meta['tags'][$selected_tag]
             ))
             ->log_to($this->requests_log)
             ->execute();
