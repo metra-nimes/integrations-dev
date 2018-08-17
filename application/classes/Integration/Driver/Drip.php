@@ -9,7 +9,7 @@
  *
  * @version 0.5 (27.04.2018)
  */
-class Integration_Driver_Drip extends Integration_OauthDriver implements Integration_Interface_BackendESP {
+class Integration_Driver_Drip extends Integration_OauthDriver implements Integration_Interface_ContactStorage {
 
 	protected static $company_name = 'Avenue 81, Inc.';
 	protected static $company_address = '251 N. 1st Avenue, Suite 200, Minneapolis, MN 55401, USA';
@@ -21,13 +21,13 @@ class Integration_Driver_Drip extends Integration_OauthDriver implements Integra
      * @var array
      */
     protected $standard_properties = array(
-       // 'email' => 'email',
         'first_name' => 'first_name',
         'last_name' => 'last_name',
-        'name' => 'name',
         'site' => 'site',
         'company' => 'company',
         'phone' => 'phone',
+		'referral_url' => 'original_referrer',
+		'landing_page_url' => 'landing_url',
     );
 
     /**
@@ -72,31 +72,35 @@ class Integration_Driver_Drip extends Integration_OauthDriver implements Integra
     public function describe_credentials_fields($refresh = FALSE)
     {
         return array(
-            'name' => array(
+            'name' => [
                 'title' => 'Account Name',
                 'type' => 'text',
                 'description' => 'It\'s an internal value, which can be helpful to identify a specific account in future.',
-                'rules' => array(
-                    array('not_empty'),
-                ),
-            ),
-            'oauth' => array(
+				'rules' => [
+					['not_empty'],
+				],
+            ],
+            'oauth' => [
                 'title' => 'Connect with Drip',
                 'type' => 'oauth',
                 'token_key' => 'code',
                 // http://developer.drip.com/#oauth
                 'url' => 'https://www.getdrip.com/oauth/authorize?'.http_build_query(
-                        array(
+                        [
                             'response_type' => 'code',
                             'client_id' => $this->get_key(),
                             'redirect_uri' => URL::domain().'/api/integration/complete_oauth/Drip',
-                        )
+                        ]
                     ),
                 'size' => '600x600',
-                'rules' => array(
-                    array('not_empty'),
-                ),
-            ),
+                'rules' => [
+                    ['not_empty'],
+                ],
+            ],
+			'account_id' => [
+				'type' => 'hidden',
+				'std' => NULL,
+			],
         );
     }
 
@@ -111,11 +115,25 @@ class Integration_Driver_Drip extends Integration_OauthDriver implements Integra
      */
     public function fetch_meta()
     {
+		$this->meta = [
+			'campaigns' => [],
+			'workflows' => [],
+			'events' => [],
+			'tags' => []
+		];
+
+		$meta_keys = [
+			'tags' => 'tags',
+			'campaigns' => 'campaigns',
+			'workflows' => 'workflows',
+			'events' => 'event_actions'
+		];
+
         $this->provide_oauth_access();
 
         $access_token = Arr::path($this->credentials, 'oauth.access_token');
 
-        // http://developer.drip.com/#list-all-accounts
+        // https://developer.drip.com/#list-all-accounts
         $r = Integration_Request::factory()
             ->method('GET')
             ->header('Accept-type', 'Application/json')
@@ -132,15 +150,15 @@ class Integration_Driver_Drip extends Integration_OauthDriver implements Integra
             }
             elseif ($r->code == 404)
             {
-                throw new Integration_Exception(INT_E_SERVER_NOT_AVAILABLE);
+                throw new Integration_Exception(INT_E_WRONG_REQUEST);
             }
             elseif ($r->code == 409)
             {
-                throw new Integration_Exception(INT_E_TOO_FREQUENT_REQUESTS);
+                throw new Integration_Exception(INT_E_FREQUENT_TEMPORARY_ERR);
             }
             elseif ($r->code == 500)
             {
-                throw new Integration_Exception(INT_E_INTERNAL_SERVER_ERROR);
+                throw new Integration_Exception(INT_E_FREQUENT_TEMPORARY_ERR);
             }
             else
             {
@@ -153,59 +171,180 @@ class Integration_Driver_Drip extends Integration_OauthDriver implements Integra
 
             foreach ($accounts as $account)
             {
-                $this->meta['accounts'][$account['id']] = $account['name'];
+				Arr::set_path($this->credentials, 'account_id',$account['id']);
             }
+
+            $account_id = $this->get_credentials('account_id', '');
         }
 
-        foreach ($this->meta['accounts'] as $id => $name)
-        {
-            // http://developer.drip.com/#list-all-campaigns
-            $r = Integration_Request::factory()
-                ->method('GET')
-                ->header('Accept-type', 'Application/json')
-                ->header('Authorization', 'Bearer '.$access_token)
-                ->url($this->get_endpoint().'/v2/'.$id.'/campaigns')
-                ->log_to($this->requests_log)
-                ->execute();
+		foreach ($meta_keys as $key => $action)
+		{
+			// https://developer.drip.com
+			$r = Integration_Request::factory()
+				->method('GET')
+				->header('Accept-type', 'Application/json')
+				->header('Authorization', 'Bearer '.$access_token)
+				->url($this->get_endpoint().'/v2/'.$account_id.'/'.$action)
+				->log_to($this->requests_log)
+				->execute();
 
-            if ( ! $r->is_successful())
-            {
-                if ($r->code == 401 OR $r->code == 403)
-                {
-                    throw new Integration_Exception(INT_E_WRONG_CREDENTIALS, 'oauth', 'Account Access Token is not valid');
-                }
-                elseif ($r->code == 404)
-                {
-                    throw new Integration_Exception(INT_E_SERVER_NOT_AVAILABLE);
-                }
-                elseif ($r->code == 409)
-                {
-                    throw new Integration_Exception(INT_E_TOO_FREQUENT_REQUESTS);
-                }
-                elseif ($r->code == 500)
-                {
-                    throw new Integration_Exception(INT_E_INTERNAL_SERVER_ERROR);
-                }
-                else
-                {
-                    throw new Integration_Exception(INT_E_WRONG_REQUEST);
-                }
-            }
-            else
-            {
-                $campaigns = $r->get('campaigns');
+			if ( ! $r->is_successful())
+			{
+				if ($r->code == 401 OR $r->code == 403)
+				{
+					throw new Integration_Exception(INT_E_WRONG_CREDENTIALS, 'oauth', 'Account Access Token is not valid');
+				}
+				elseif ($r->code == 404)
+				{
+					throw new Integration_Exception(INT_E_WRONG_REQUEST);
+				}
+				elseif ($r->code == 409)
+				{
+					throw new Integration_Exception(INT_E_TOO_FREQUENT_REQUESTS);
+				}
+				elseif ($r->code == 500)
+				{
+					throw new Integration_Exception(INT_E_TOO_FREQUENT_REQUESTS);
+				}
+				else
+				{
+					throw new Integration_Exception(INT_E_WRONG_REQUEST);
+				}
+			}
+			else
+			{
+				if ($action == 'tags' OR $action == 'event_actions')
+				{
+					$this->meta[$key] = $r->get($action);
+				}
+				else
+				{
+					foreach ($r->get($action) as $value)
+					{
+						$this->meta[$key][$value['id']] = $value['name'];
+					}
+				}
+			}
 
-                foreach ($campaigns as $key => $campaign)
-                {
-                    $this->meta['campaigns'][$campaign['id']] = array('account_id' => $id, 'name' => $campaign['name'],);
-                }
-            }
-
-        }
-
+		}
         return $this;
     }
 
+	public function describe_automations()
+	{
+		$campaigns = (array) $this->get_meta('campaigns', []);
+		$tags = (array) $this->get_meta('tags', []);
+		$workflows = (array) $this->get_meta('workflows', []);
+		$events = (array) $this->get_meta('events', []);
+
+		return [
+			'add_campaign_subscriber' => [
+				'title' => 'Subscribe to campaign',
+				'params_fields' => [
+					'campaign_id' => [
+						'title' => 'Campaign Name',
+						'description' => NULL,
+						'type' => 'select',
+						'options' => $campaigns,
+						'classes' => 'i-refreshable',
+						'rules' => [
+							['in_array', [':value', array_keys($campaigns)]],
+						],
+					],
+				],
+			],
+			'remove_campaign_subscriber' => [
+				'title' => 'Unsubscribe from campaign',
+				'params_fields' => [
+					'campaign_id' => [
+						'title' => 'Campaign Name',
+						'description' => NULL,
+						'type' => 'select',
+						'options' => $campaigns,
+						'classes' => 'i-refreshable',
+						'rules' => [
+							['in_array', [':value', array_keys($campaigns)]],
+						],
+					],
+				],
+			],
+			'add_subscriber_tag' => [
+				'title' => 'Add new tag to a subscriber',
+				'params_fields' => [
+					'tag_id' => [
+						'title' => 'Tag Name',
+						'description' => NULL,
+						'type' => 'select',
+						'options' => $tags,
+						'classes' => 'i-refreshable',
+						'rules' => [
+							['in_array', [':value', array_keys($tags)]],
+						],
+					],
+				],
+			],
+			'remove_subscriber_tag' => [
+				'title' => 'Remove tag from a subscriber',
+				'params_fields' => [
+					'tag_id' => [
+						'title' => 'Tag Name',
+						'description' => NULL,
+						'type' => 'select',
+						'options' => $tags,
+						'classes' => 'i-refreshable',
+						'rules' => [
+							['in_array', [':value', array_keys($tags)]],
+						],
+					],
+				],
+			],
+			'add_workflow_subscriber' => [
+				'title' => 'Add to workflow',
+				'params_fields' => [
+					'workflow_id' => [
+						'title' => 'Workflow Name',
+						'description' => NULL,
+						'type' => 'select',
+						'options' => $workflows,
+						'classes' => 'i-refreshable',
+						'rules' => [
+							['in_array', [':value', array_keys($workflows)]],
+						],
+					],
+				],
+			],
+			'remove_workflow_subscriber' => [
+				'title' => 'Remove from workflow',
+				'params_fields' => [
+					'workflow_id' => [
+						'title' => 'Workflow Name',
+						'description' => NULL,
+						'type' => 'select',
+						'options' => $workflows,
+						'classes' => 'i-refreshable',
+						'rules' => [
+							['in_array', [':value', array_keys($workflows)]],
+						],
+					],
+				],
+			],
+			'record_event' => [
+				'title' => 'Record an event',
+				'params_fields' => [
+					'event' => [
+						'title' => 'Event Name',
+						'description' => NULL,
+						'type' => 'select',
+						'options' => $events,
+						'classes' => 'i-refreshable',
+						'rules' => [
+							['in_array', [':value', array_keys($events)]],
+						],
+					],
+				],
+			],
+		];
+	}
     /**
      * Describe COF fieldset config to render widget integration parameters
      *
@@ -424,7 +563,7 @@ class Integration_Driver_Drip extends Integration_OauthDriver implements Integra
      */
     public function translate_int_data_to_subscriber_data(array $int_data)
     {
-        $data = $int_data['subscribers']['0'];
+        $data = $int_data;
 
         $subscriber_data = array();
 
@@ -438,7 +577,14 @@ class Integration_Driver_Drip extends Integration_OauthDriver implements Integra
                 }
                 else
                 {
-                    $subscriber_data['meta'][$key] = $value;
+                	if (in_array($key,$this->standard_properties))
+					{
+						$subscriber_data[array_search($key,$this->standard_properties)] = $value;
+					}
+					else
+					{
+						$subscriber_data['meta'][$key] = $value;
+					}
                 }
             }
         }
@@ -479,32 +625,43 @@ class Integration_Driver_Drip extends Integration_OauthDriver implements Integra
             }
         }
 
+		$id = Arr::get($int_data, 'id');
+		if ($id)
+		{
+			Arr::set_path($subscriber_data, '$integration.id', $id);
+		}
+
         return $subscriber_data;
     }
 
     /**
      * Get person by email
-     * @link http://developer.drip.com/#list-all-of-a-subscriber-39-s-campaign-subscriptions
+     * @link https://developer.drip.com/?shell#fetch-a-subscriber
      *
      * @param string $email
      * @return array|NULL
      * @throws Exception
      * @throws Integration_Exception
      */
-    public function get_person($email)
+    public function get_subscriber($email)
     {
         $this->provide_oauth_access();
 
         $access_token = $this->get_credentials('oauth.access_token', '');
-        $accountId = $this->get_params('accountId', NULL);
-        $listId = $this->get_params('listId', NULL);
+        $account_id = $this->get_credentials('account_id', '');
         $email = strtolower($email);
 
+		// Get person by email
+	    // @link https://developer.drip.com/?shell#fetch-a-subscriber
         $r = Integration_Request::factory()
             ->method('GET')
+			->curl(array(
+				CURLOPT_CONNECTTIMEOUT_MS => 5000,
+				CURLOPT_TIMEOUT_MS => 15000,
+			))
             ->header('Accept-type', 'Application/json')
             ->header('Authorization', 'Bearer '.$access_token)
-            ->url($this->get_endpoint().'/v2/'.$accountId.'/subscribers/'.$email.'/campaign_subscriptions')
+            ->url($this->get_endpoint().'/v2/'.$account_id.'/subscribers/'.$email)
             ->log_to($this->requests_log)
             ->execute();
 
@@ -525,49 +682,16 @@ class Integration_Driver_Drip extends Integration_OauthDriver implements Integra
         }
         else
         {
-            $subscriptions = $r->get('campaign_subscriptions');
-
-            foreach ($subscriptions as $key => $subscription)
-            {
-                if ($listId == $subscription['campaign_id'])
-                {
-                    $r = Integration_Request::factory()
-                        ->method('GET')
-                        ->curl(array(
-                            CURLOPT_CONNECTTIMEOUT_MS => 5000,
-                            CURLOPT_TIMEOUT_MS => 15000,
-                        ))
-                        ->header('Accept-Type', 'application/json')
-                        ->header('Authorization', 'Bearer '.$access_token)
-                        ->url($this->get_endpoint().'/v2/'.$accountId.'/subscribers/'.$email)
-                        ->log_to($this->requests_log)
-                        ->execute();
-
-                    if ($r->code == 404)
-                    {
-                        return NULL;
-                    }
-                    elseif ($r->code == 401 OR $r->code == 403)
-                    {
-                        throw new Integration_Exception(INT_E_WRONG_CREDENTIALS);
-                    }
-                    elseif ($r->code !== 200)
-                    {
-                        throw new Integration_Exception(INT_E_WRONG_REQUEST);
-                    }
-
-                    return $this->translate_int_data_to_subscriber_data($r->data);
-                }
-            }
+			$subscriber_data = $this->translate_int_data_to_subscriber_data(current($r->get('subscribers')));
         }
 
-        return NULL;
+        return $subscriber_data;
     }
 
 
     /**
      * Create a person with given data
-     * @link http://developer.drip.com/#subscribe-someone-to-a-campaign
+     * @link https://developer.drip.com/?shell#create-or-update-a-subscriber
      *
      * @param string $email
      * @param array $subscriber_data
@@ -579,8 +703,7 @@ class Integration_Driver_Drip extends Integration_OauthDriver implements Integra
         $this->provide_oauth_access();
 
         $access_token = $this->get_credentials('oauth.access_token', '');
-        $accountId = $this->get_params('accountId', NULL);
-        $listId = $this->get_params('listId', NULL);
+        $account_id =  $this->get_credentials('account_id', '');
         $email = strtolower($email);
 
         $int_data = $this->translate_subscriber_data_to_int_data($subscriber_data, TRUE);
@@ -588,12 +711,14 @@ class Integration_Driver_Drip extends Integration_OauthDriver implements Integra
         $int_data = array(
             'subscribers' => array(
                 array_merge($int_data, array(
-                    'email' => $email,
-                    'tags' => Arr::get($this->params, 'tags'),
+                    'new_email' => $email,
+					'email' => $email
                 )),
             )
         );
 
+		// Create a person with given data
+	    // @link https://developer.drip.com/?shell#create-or-update-a-subscriber
         $r = Integration_Request::factory()
             ->method('POST')
             ->curl(array(
@@ -603,42 +728,24 @@ class Integration_Driver_Drip extends Integration_OauthDriver implements Integra
             ->header('Accept-Type', 'application/json')
             ->header('Content-Type', 'application/json')
             ->header('Authorization', 'Bearer '.$access_token)
-            ->url($this->get_endpoint().'/v2/'.$accountId.'/campaigns/'.$listId.'/subscribers')
+            ->url($this->get_endpoint().'/v2/'.$account_id.'/subscribers')
             ->data($int_data)
             ->log_to($this->requests_log)
             ->execute();
 
         if ( ! $r->is_successful())
         {
-        	var_dump($r->body);
-        	if ($r->code === 422 AND $r->path('errors.0.message') === 'Email is already subscribed')
-	        {
-		        throw new Integration_Exception(INT_E_EMAIL_DUPLICATE);
-	        }
-	        elseif ($r->code === 422 AND $r->path('errors.0.message') === 'Campaign is not currently active')
-	        {
-		        throw new Integration_Exception(INT_E_WRONG_PARAMS, 'listId');
-	        }
+			if ($r->code == 401 OR $r->code == 403)
+			{
+                throw new Integration_Exception(INT_E_WRONG_CREDENTIALS);
+            }
             throw new Integration_Exception(INT_E_WRONG_REQUEST);
         }
     }
 
     /**
-     * Update a person with given data
-     *
-     * @param string $email
-     * @param array $subscriber_data
-     * @throws Exception
-     * @throws Integration_Exception
-     */
-    public function update_person($email, $subscriber_data)
-    {
-        return $this->create_person($email, $subscriber_data);
-    }
-
-    /**
      * Refresh Oauth Access Token
-     * @link http://developer.drip.com/#oauth
+     * @link https://developer.drip.com/?shell#oauth
      *
      * @return bool
      */
@@ -649,7 +756,7 @@ class Integration_Driver_Drip extends Integration_OauthDriver implements Integra
 
     /**
      * Get Oauth Access Token
-     * @link http://developer.drip.com/#oauth
+     * @link https://developer.drip.com/?shell#oauth
      *
      * @throws Exception
      * @throws Integration_Exception
@@ -694,4 +801,408 @@ class Integration_Driver_Drip extends Integration_OauthDriver implements Integra
             throw new Integration_Exception(INT_E_WRONG_CREDENTIALS);
         }
     }
+
+	/**
+	 * Add subscriber to campaign
+	 * @link https://developer.drip.com/?shell#subscribe-someone-to-a-campaign
+	 * @param $email
+	 * @param $params
+	 * @param array $subscriber_data
+	 * @throws Integration_Exception
+	 */
+	public function add_campaign_subscriber($email, $params, $subscriber_data = array())
+	{
+		$campaign_id = Arr::get($params, 'campaign_id');
+		if ( ! isset($campaign_id))
+		{
+			throw new Integration_Exception(INT_E_WRONG_PARAMS);
+		}
+
+		$subscriber = $this->get_subscriber($email);
+		if ($subscriber === NULL)
+		{
+			$this->create_person($email, $subscriber_data);
+		}
+
+		$this->provide_oauth_access();
+
+		$access_token = $this->get_credentials('oauth.access_token', '');
+		$account_id =  $this->get_credentials('account_id', '');
+
+		$int_data['subscribers'][] = array(
+			'email' => $email
+		);
+
+		// Add subscriber to campaign
+	    // @link https://developer.drip.com/?shell#subscribe-someone-to-a-campaign
+		$r = Integration_Request::factory()
+			->method('POST')
+			->curl(array(
+				CURLOPT_CONNECTTIMEOUT_MS => 5000,
+				CURLOPT_TIMEOUT_MS => 15000,
+			))
+			->header('Accept-Type', 'application/json')
+			->header('Content-Type', 'application/json')
+			->header('Authorization', 'Bearer '.$access_token)
+			->url($this->get_endpoint().'/v2/'.$account_id.'/campaigns/'.$campaign_id.'/subscribers')
+			->data($int_data)
+			->log_to($this->requests_log)
+			->execute();
+
+		if ( ! $r->is_successful())
+		{
+			if ($r->code == 401 OR $r->code == 403)
+			{
+				throw new Integration_Exception(INT_E_WRONG_CREDENTIALS);
+			}
+			elseif ($r->code === 422)
+			{
+				throw new Integration_Exception(INT_E_WRONG_PARAMS,'',$r->path('errors.0.message'));
+			}
+			throw new Integration_Exception(INT_E_WRONG_REQUEST);
+		}
+	}
+
+	/**
+	 * Remove subscriber from campaign
+	 * @link https://developer.drip.com/?shell#remove-a-subscriber-from-one-or-all-campaigns
+	 * @param $email
+	 * @param $params
+	 * @throws Integration_Exception
+	 */
+	public function remove_campaign_subscriber($email, $params)
+	{
+		$campaign_id = Arr::get($params, 'campaign_id');
+		if ( ! isset($campaign_id))
+		{
+			throw new Integration_Exception(INT_E_WRONG_PARAMS);
+		}
+
+		$subscriber = $this->get_subscriber($email);
+		if ($subscriber === NULL)
+		{
+			return;
+		}
+
+		$this->provide_oauth_access();
+
+		$access_token = $this->get_credentials('oauth.access_token', '');
+		$account_id =  $this->get_credentials('account_id', '');
+
+		// Remove subscriber from campaign
+	    // @link https://developer.drip.com/?shell#remove-a-subscriber-from-one-or-all-campaigns
+		$r = Integration_Request::factory()
+			->method('POST')
+			->curl(array(
+				CURLOPT_CONNECTTIMEOUT_MS => 5000,
+				CURLOPT_TIMEOUT_MS => 15000,
+			))
+			->header('Accept-Type', 'application/json')
+			->header('Content-Type', 'application/json')
+			->header('Authorization', 'Bearer '.$access_token)
+			->url($this->get_endpoint().'/v2/'.$account_id.'/subscribers/'.$email.'/remove')
+			->data(array(
+				'campaign_id' => $campaign_id
+			))
+			->log_to($this->requests_log)
+			->execute();
+
+		if ( ! $r->is_successful())
+		{
+			if ($r->code == 401 OR $r->code == 403)
+			{
+				throw new Integration_Exception(INT_E_WRONG_CREDENTIALS);
+			}
+			elseif ($r->code === 422)
+			{
+				throw new Integration_Exception(INT_E_WRONG_PARAMS);
+			}
+			throw new Integration_Exception(INT_E_WRONG_REQUEST);
+		}
+	}
+
+	/**
+	 * Add new tag to a subscriber
+	 * @link https://developer.drip.com/?shell#apply-a-tag-to-a-subscriber
+	 * @param $email
+	 * @param $params
+	 * @param array $subscriber_data
+	 * @throws Integration_Exception
+	 */
+	public function add_subscriber_tag($email, $params, $subscriber_data = array())
+	{
+		$tag_id = Arr::get($params, 'tag_id');
+		if ( ! isset($tag_id))
+		{
+			throw new Integration_Exception(INT_E_WRONG_PARAMS);
+		}
+
+		$subscriber = $this->get_subscriber($email);
+		if ($subscriber === NULL)
+		{
+			$this->create_person($email, $subscriber_data);
+		}
+
+		$this->provide_oauth_access();
+
+		$access_token = $this->get_credentials('oauth.access_token', '');
+		$account_id =  $this->get_credentials('account_id', '');
+
+		$int_data['tags'][] = array(
+			'email' => $email,
+			'tag' => $this->meta['tags'][$tag_id]
+		);
+
+		// Add new tag to a subscriber
+		// @link https://developer.drip.com/?shell#apply-a-tag-to-a-subscriber
+		$r = Integration_Request::factory()
+			->method('POST')
+			->curl(array(
+				CURLOPT_CONNECTTIMEOUT_MS => 5000,
+				CURLOPT_TIMEOUT_MS => 15000,
+			))
+			->header('Accept-Type', 'application/json')
+			->header('Content-Type', 'application/json')
+			->header('Authorization', 'Bearer '.$access_token)
+			->url($this->get_endpoint().'/v2/'.$account_id.'/tags')
+			->data($int_data)
+			->log_to($this->requests_log)
+			->execute();
+
+		if ( ! $r->is_successful())
+		{
+			if ($r->code == 401 OR $r->code == 403)
+			{
+				throw new Integration_Exception(INT_E_WRONG_CREDENTIALS);
+			}
+			elseif ($r->code === 422)
+			{
+				throw new Integration_Exception(INT_E_WRONG_PARAMS);
+			}
+			throw new Integration_Exception(INT_E_WRONG_REQUEST);
+		}
+	}
+
+	/**
+	 * Remove tag from a subscriber
+	 * @link https://developer.drip.com/?shell#remove-a-tag-from-a-subscriber
+	 * @param $email
+	 * @param $params
+	 * @throws Integration_Exception
+	 */
+	public function remove_subscriber_tag($email, $params)
+	{
+		$tag_id = Arr::get($params, 'tag_id');
+		if ( ! isset($tag_id))
+		{
+			throw new Integration_Exception(INT_E_WRONG_PARAMS);
+		}
+
+		$subscriber = $this->get_subscriber($email);
+		if ($subscriber === NULL)
+		{
+			return;
+		}
+
+		$this->provide_oauth_access();
+
+		$access_token = $this->get_credentials('oauth.access_token', '');
+		$account_id =  $this->get_credentials('account_id', '');
+
+		// Remove tag from a subscriber
+		// @link https://developer.drip.com/?shell#remove-a-tag-from-a-subscriber
+		$r = Integration_Request::factory()
+			->method('DELETE')
+			->curl(array(
+				CURLOPT_CONNECTTIMEOUT_MS => 5000,
+				CURLOPT_TIMEOUT_MS => 15000,
+			))
+			->header('Accept-Type', 'application/json')
+			->header('Content-Type', 'application/json')
+			->header('Authorization', 'Bearer '.$access_token)
+			->url($this->get_endpoint().'/v2/'.$account_id.'/subscribers/'.$email.'/tags/'.$this->meta['tags'][$tag_id])
+			->log_to($this->requests_log)
+			->execute();
+
+		if ( ! $r->is_successful())
+		{
+			if ($r->code == 401 OR $r->code == 403)
+			{
+				throw new Integration_Exception(INT_E_WRONG_CREDENTIALS);
+			}
+			elseif ($r->code === 422)
+			{
+				throw new Integration_Exception(INT_E_WRONG_PARAMS);
+			}
+			throw new Integration_Exception(INT_E_WRONG_REQUEST);
+		}
+	}
+
+	/**
+	 * Add subscriber on a workflow
+	 * @link https://developer.drip.com/?shell#start-someone-on-a-workflow
+	 * @param $email
+	 * @param $params
+	 * @param array $subscriber_data
+	 * @throws Integration_Exception
+	 */
+	public function add_workflow_subscriber($email, $params, $subscriber_data = array())
+	{
+		$workflow_id = Arr::get($params, 'workflow_id');
+		if ( ! isset($workflow_id))
+		{
+			throw new Integration_Exception(INT_E_WRONG_PARAMS);
+		}
+
+		$subscriber = $this->get_subscriber($email);
+		if ($subscriber === NULL)
+		{
+			$this->create_person($email, $subscriber_data);
+		}
+
+		$this->provide_oauth_access();
+
+		$access_token = $this->get_credentials('oauth.access_token', '');
+		$account_id =  $this->get_credentials('account_id', '');
+
+		$int_data['subscribers'][] = array(
+			'email' => $email
+		);
+
+		// Add subscriber on a workflow
+		// @link https://developer.drip.com/?shell#start-someone-on-a-workflow
+		$r = Integration_Request::factory()
+			->method('POST')
+			->curl(array(
+				CURLOPT_CONNECTTIMEOUT_MS => 5000,
+				CURLOPT_TIMEOUT_MS => 15000,
+			))
+			->header('Accept-Type', 'application/json')
+			->header('Content-Type', 'application/json')
+			->header('Authorization', 'Bearer '.$access_token)
+			->url($this->get_endpoint().'/v2/'.$account_id.'/workflows/'.$workflow_id.'/subscribers')
+			->data($int_data)
+			->log_to($this->requests_log)
+			->execute();
+
+		if ( ! $r->is_successful())
+		{
+			if ($r->code == 401 OR $r->code == 403)
+			{
+				throw new Integration_Exception(INT_E_WRONG_CREDENTIALS);
+			}
+			elseif ($r->code === 422)
+			{
+				throw new Integration_Exception(INT_E_WRONG_PARAMS,'',$r->path('errors.0.message'));
+			}
+			throw new Integration_Exception(INT_E_WRONG_REQUEST);
+		}
+	}
+
+	/**
+	 * Remove subscriber from workflow
+	 * @link https://developer.drip.com/?shell#remove-a-subscriber-from-a-workflow
+	 * @param $email
+	 * @param $params
+	 * @throws Integration_Exception
+	 */
+	public function remove_workflow_subscriber($email, $params)
+	{
+		$workflow_id = Arr::get($params, 'workflow_id');
+		if ( ! isset($workflow_id))
+		{
+			throw new Integration_Exception(INT_E_WRONG_PARAMS);
+		}
+
+		$subscriber = $this->get_subscriber($email);
+		if ($subscriber === NULL)
+		{
+			return;
+		}
+
+		$this->provide_oauth_access();
+
+		$access_token = $this->get_credentials('oauth.access_token', '');
+		$account_id =  $this->get_credentials('account_id', '');
+
+		// Remove subscriber from workflow
+		// @link https://developer.drip.com/?shell#remove-a-subscriber-from-a-workflow
+		$r = Integration_Request::factory()
+			->method('DELETE')
+			->curl(array(
+				CURLOPT_CONNECTTIMEOUT_MS => 5000,
+				CURLOPT_TIMEOUT_MS => 15000,
+			))
+			->header('Accept-Type', 'application/json')
+			->header('Content-Type', 'application/json')
+			->header('Authorization', 'Bearer '.$access_token)
+			->url($this->get_endpoint().'/v2/'.$account_id.'/workflows/'.$workflow_id.'/subscribers/'.$email)
+			->log_to($this->requests_log)
+			->execute();
+
+		if ( ! $r->is_successful())
+		{
+			if ($r->code == 401 OR $r->code == 403)
+			{
+				throw new Integration_Exception(INT_E_WRONG_CREDENTIALS);
+			}
+			elseif ($r->code === 422)
+			{
+				throw new Integration_Exception(INT_E_WRONG_PARAMS,'',$r->path('errors.0.message'));
+			}
+			throw new Integration_Exception(INT_E_WRONG_REQUEST);
+		}
+	}
+
+	/**
+	 * Record an event subscriber
+	 * @link https://developer.drip.com/?shell#events
+	 * @param $email
+	 * @param $params
+	 * @throws Integration_Exception
+	 */
+	public function record_event($email, $params)
+	{
+		$event = Arr::get($params, 'event');
+		if ( ! isset($event))
+		{
+			throw new Integration_Exception(INT_E_WRONG_PARAMS);
+		}
+		$account_id = $this->get_credentials('account_id', '');
+		$access_token = $this->get_credentials('oauth.access_token', '');
+
+		$int_data['events'][] = [
+			'email' => $email,
+			'action' => $this->meta['events'][$event],
+		];
+
+		// Record an event subscriber
+		// @link https://developer.drip.com/?shell#events
+		$r = Integration_Request::factory()
+			->method('POST')
+			->curl([
+				CURLOPT_CONNECTTIMEOUT_MS => 5000,
+				CURLOPT_TIMEOUT_MS => 15000,
+			])
+			->header('Accept-type', 'Application/json')
+			->header('Content-Type', 'application/json')
+			->header('Authorization', 'Bearer '.$access_token)
+			->url($this->get_endpoint().'/v2/'.$account_id.'/events')
+			->data($int_data)
+			->log_to($this->requests_log)
+			->execute();
+
+		if ( ! $r->is_successful())
+		{
+			if ($r->code == 401 OR $r->code == 403)
+			{
+				throw new Integration_Exception(INT_E_WRONG_CREDENTIALS);
+			}
+			elseif ($r->code === 422)
+			{
+				throw new Integration_Exception(INT_E_WRONG_PARAMS,'',$r->path('errors.0.message'));
+			}
+			throw new Integration_Exception(INT_E_WRONG_REQUEST);
+		}
+	}
 }
