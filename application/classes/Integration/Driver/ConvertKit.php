@@ -15,35 +15,35 @@ class Integration_Driver_ConvertKit extends Integration_Driver implements Integr
 	public function describe_credentials_fields($refresh = FALSE)
 	{
 		return array(
-			'name' => array(
+			'name' => [
 				'title' => 'Account Name',
 				'type' => 'text',
 				'description' => 'It\'s an internal value, which can be helpful to identify a specific account in future.',
-				'rules' => array(
-					array('not_empty'),
-				),
-			),
-			'api_key' => array(
+				'rules' => [
+					['not_empty'],
+				],
+			],
+			'api_key' => [
 				'title' => 'Account API Key',
 				'type' => 'key',
 				'description' => '<a href="/docs/integrations/convertkit/#step-2-get-your-convertkit-api-key-and-api-secret" target="_blank">Read where to obtain this code</a>',
-				'rules' => array(
-					array('not_empty'),
-				),
-			),
-			'api_secret' => array(
+				'rules' => [
+					['not_empty'],
+				],
+			],
+			'api_secret' => [
 				'title' => 'Account API Secret',
 				'type' => 'key',
 				'description' => 'Required to check email duplicates',
-				'rules' => array(
-					array('not_empty'),
-				),
-			),
-			'submit' => array(
+				'rules' => [
+					['not_empty'],
+				],
+			],
+			'submit' => [
 				'title' => 'Connect with ConvertKit',
 				'type' => 'submit',
 				'action' => 'connect',
-			),
+			],
 		);
 	}
 
@@ -68,11 +68,11 @@ class Integration_Driver_ConvertKit extends Integration_Driver implements Integr
 			'sequences' => 'courses'
 		];
 
-		// Getting available forms and tags
+		// Getting available forms and tags sequences
 		// Their interfaces are pretty much alike, so we can combine them
 		foreach ($meta_keys as $key => $value)
 		{
-			// http://help.convertkit.com/article/33-api-documentation-v3
+			// http://developers.convertkit.com
 			$r = Integration_Request::factory()
 				->method('GET')
 				->url($this->get_endpoint().'/'.$key)
@@ -401,8 +401,8 @@ class Integration_Driver_ConvertKit extends Integration_Driver implements Integr
 
 	public function get_subscriber($email)
 	{
-		// View a single subscriber
-		// http://help.convertkit.com/article/33-api-documentation-v3
+		// View subscriber by email
+		// http://developers.convertkit.com/#list-subscribers
 		$r = Integration_Request::factory()
 			->curl(array(
 				CURLOPT_CONNECTTIMEOUT_MS => 15000,
@@ -438,8 +438,8 @@ class Integration_Driver_ConvertKit extends Integration_Driver implements Integr
 		$data['api_key'] = $this->get_credentials('api_key');
 		$data['email'] = $email;
 
-		// Create subscriber
-		// http://help.convertkit.com/article/33-api-documentation-v3
+		// Add subscriber to a form
+		// http://developers.convertkit.com/#add-subscriber-to-a-form
 		$r = Integration_Request::factory()
 			->curl(array(
 				CURLOPT_CONNECTTIMEOUT_MS => 15000,
@@ -459,12 +459,6 @@ class Integration_Driver_ConvertKit extends Integration_Driver implements Integr
 		}
 
 	}
-
-	public function update_person($email, $subscriber_data)
-	{
-		$this->create_person($email, $subscriber_data);
-	}
-
 
 	/**
 	 * Verifying request
@@ -509,7 +503,7 @@ class Integration_Driver_ConvertKit extends Integration_Driver implements Integr
 			$data = array();
 			$data['api_secret'] = $this->get_credentials('api_secret');
 			// List fields
-			// http://help.convertkit.com/article/33-api-documentation-v3
+			// http://developers.convertkit.com/#list-fields
 			$r = Integration_Request::factory()
 				->method('GET')
 				->curl(array(
@@ -557,7 +551,7 @@ class Integration_Driver_ConvertKit extends Integration_Driver implements Integr
 	{
 		$data = array('label' => ucfirst($name), 'api_secret' => $this->get_credentials('api_secret'));
 		// Create field
-		// http://help.convertkit.com/article/33-api-documentation-v3
+		// http://developers.convertkit.com/#create-field
 		$r = Integration_Request::factory()
 			->method('POST')
 			->curl(array(
@@ -610,6 +604,9 @@ class Integration_Driver_ConvertKit extends Integration_Driver implements Integr
 			throw new Integration_Exception(INT_E_WRONG_REQUEST);
 		}
 
+
+		// Tag a subscriber
+		// @link http://developers.convertkit.com/#tag-a-subscriber
 		$r = Integration_Request::factory()
 			->method('POST')
 			->curl(array(
@@ -647,6 +644,8 @@ class Integration_Driver_ConvertKit extends Integration_Driver implements Integr
 			return;
 		}
 
+		// Remove tag from a subscriber by email
+		// @link http://developers.convertkit.com/#remove-tag-from-a-subscriber-by-email
 		$r = Integration_Request::factory()
 			->method('POST')
 			->curl(array(
@@ -682,6 +681,8 @@ class Integration_Driver_ConvertKit extends Integration_Driver implements Integr
 		$data['api_key'] = $this->get_credentials('api_key');
 		$data['email'] = $email;
 
+		// Add subscriber to a sequence
+		// @link http://developers.convertkit.com/#add-subscriber-to-a-sequence
 		$r = Integration_Request::factory()
 			->method('POST')
 			->curl(array(
