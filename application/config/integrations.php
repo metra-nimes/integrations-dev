@@ -13,4 +13,8 @@ return array(
 		'title' => 'ActiveCampaign',
 		'ready_for' => Kohana::PRODUCTION,
 	),
+	'Klaviyo' => array(
+		'title' => 'Klaviyo',
+		'ready_for' => Kohana::PRODUCTION,
+	),
 );

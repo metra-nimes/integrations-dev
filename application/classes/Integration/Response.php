@@ -142,6 +142,15 @@ class Integration_Response {
 		return Arr::path($this->data, $path, $default);
 	}
 
+	/**
+	 * Get response json array
+	 * @return array
+	 */
+	public function get_response_data()
+	{
+		return $this->data;
+	}
+
 	public function debug()
 	{
 		echo '<pre>';
