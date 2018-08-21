@@ -68,7 +68,7 @@ class Integration_Driver_Klaviyo extends Integration_Driver implements Integrati
 			throw new Integration_Exception(INT_E_WRONG_REQUEST);
 		}
 
-		foreach ($r->get_response_data() as $list)
+		foreach ($r->data as $list)
 		{
 			$list_id = Arr::get($list, 'list_id', 0);
 			if ($list_id)
@@ -119,31 +119,6 @@ class Integration_Driver_Klaviyo extends Integration_Driver implements Integrati
 			],
 
 		];
-	}
-
-	public function describe_params_fields()
-	{
-		$lists = $this->get_meta('lists', array());
-
-		return array(
-			'list' => array(
-				'title' => 'List',
-				'description' => NULL,
-				'type' => 'select',
-				'options' => $lists,
-				'classes' => 'i-refreshable',
-				'rules' => array(
-					array('in_array', array(':value', array_keys($lists))),
-					array('not_empty'),
-				),
-			),
-			'double_optin' => array(
-				'text' => 'Double Opt-in',
-				'description' => 'When enabled, subscribers will receive a email with the link to confirm their subscription. <a href="/docs/integrations/klaviyo/#double-opt-in" target="_blank">Read more about it.</a>',
-				'type' => 'switcher',
-				'std' => TRUE,
-			),
-		);
 	}
 
 	/**
@@ -258,45 +233,8 @@ class Integration_Driver_Klaviyo extends Integration_Driver implements Integrati
 
 			return $this->translate_int_data_to_subscriber_data($r->path('data.0'));
 		}
-	}
 
-	public function create_person($email, $subscriber_data)
-	{
-		$list_id = $this->get_params('list', NULL);
-		if (is_null($list_id))
-		{
-			throw new Integration_Exception(INT_E_WRONG_PARAMS);
-		}
-
-		$data = array();
-		$data['api_key'] = $this->get_credentials('api_key', '');
-		$data['email'] = strtolower($email);
-		$data['confirm_optin'] = $this->get_params('double_optin') ? 'true' : 'false';
-
-		$props = $this->translate_subscriber_data_to_int_data($subscriber_data, TRUE);
-		if ( ! empty($props))
-		{
-			$data['properties'] = json_encode($props);
-		}
-		// Create new user
-		// https://www.klaviyo.com/docs/api/lists#list-members-add
-		$r = Integration_Request::factory()
-			->method('POST')
-			->url($this->get_endpoint().'/list/'.$list_id.'/members')
-			->data($data)
-			->log_to($this->requests_log)
-			->execute();
-
-		if ( ! $r->is_successful())
-		{
-			$this->verify_response($r);
-			throw new Integration_Exception(INT_E_WRONG_REQUEST, 'api_key');
-		}
-	}
-
-	public function update_person($email, $subscriber_data)
-	{
-		$this->create_person($email, $subscriber_data);
+		return NULL;
 	}
 
 	/**
