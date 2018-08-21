@@ -13,7 +13,11 @@ return array(
 		'title' => 'ActiveCampaign',
 		'ready_for' => Kohana::PRODUCTION,
 	),
-	'MailerLite' => array(
+	'ConvertKit' => array(
+		'title' => 'ConvertKit',
+		'ready_for' => Kohana::PRODUCTION,
+	),
+  'MailerLite' => array(
 		'title' => 'MailerLite',
 		'ready_for' => Kohana::PRODUCTION,
 	),
