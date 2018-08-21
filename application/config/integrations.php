@@ -13,4 +13,8 @@ return array(
 		'title' => 'ActiveCampaign',
 		'ready_for' => Kohana::PRODUCTION,
 	),
+	'ConvertKit' => array(
+		'title' => 'ConvertKit',
+		'ready_for' => Kohana::PRODUCTION,
+	),
 );
