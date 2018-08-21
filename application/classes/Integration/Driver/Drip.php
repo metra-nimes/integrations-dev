@@ -154,7 +154,7 @@ class Integration_Driver_Drip extends Integration_OauthDriver implements Integra
             }
             elseif ($r->code == 409)
             {
-                throw new Integration_Exception(INT_E_FREQUENT_TEMPORARY_ERR);
+                throw new Integration_Exception(INT_E_WRONG_REQUEST);
             }
             elseif ($r->code == 500)
             {
@@ -200,7 +200,7 @@ class Integration_Driver_Drip extends Integration_OauthDriver implements Integra
 				}
 				elseif ($r->code == 409)
 				{
-					throw new Integration_Exception(INT_E_TOO_FREQUENT_REQUESTS);
+					throw new Integration_Exception(INT_E_WRONG_REQUEST);
 				}
 				elseif ($r->code == 500)
 				{
@@ -345,69 +345,7 @@ class Integration_Driver_Drip extends Integration_OauthDriver implements Integra
 			],
 		];
 	}
-    /**
-     * Describe COF fieldset config to render widget integration parameters
-     *
-     * @return array COF fieldset config for params form, so a user could connect specific optin with integration
-     */
-    public function describe_params_fields()
-    {
-        $accounts = Arr::get($this->meta, 'accounts', array());
 
-        $campaigns = Arr::get($this->meta, 'campaigns', array());
-        $grouped_campaigns = [];
-
-        foreach ($campaigns as $campaign_id => $campaign)
-        {
-			Arr::set_path($grouped_campaigns, Arr::get($campaign, 'account_id').'.'.$campaign_id, Arr::get($campaign, 'name'));
-        }
-
-        return array(
-            'warning' => array(
-                'type' => 'alert',
-                'text' => 'The maximum length of field\'s content should not exceed 100 characters.',
-                'closable' => TRUE,
-            ),
-            'accountId' => array(
-                'title' => 'Account',
-                'description' => NULL,
-                'type' => 'select',
-                'options' => $accounts,
-                'classes' => 'i-refreshable',
-            ),
-            'listId' => array(
-                'title' => 'Campaign',
-                'description' => NULL,
-                'type' => 'select',
-                'options' => $grouped_campaigns,
-	            'options_labels' => $accounts,
-                'classes' => 'i-refreshable',
-            ),
-	        'tags' => array(
-		        'title' => 'Tags to Mark with',
-		        'type' => 'select2',
-		        'description' => NULL,
-		        'options' => $this->get_meta('tags', array()),
-		        'multiple' => TRUE,
-		        'tokenize' => TRUE,
-		        'rules' => array(
-			        array(function ($tags) {
-				        if (is_null($tags))
-				        {
-					        return;
-				        }
-				        foreach ($tags as $tag)
-				        {
-					        if ( ! Valid::alpha_numeric($tag))
-					        {
-						        throw new Integration_Exception(INT_E_WRONG_PARAMS, 'tags', 'Tags should be alphanumeric');
-					        }
-				        }
-			        }, array(':value')),
-		        ),
-	        ),
-        );
-    }
 
     /**
      * Describe Data Rules
@@ -424,43 +362,6 @@ class Integration_Driver_Drip extends Integration_OauthDriver implements Integra
                 array('max_length', array(':value', 100), 'The maximum length of field\'s content should not exceed 100 characters.'),
             ),
         );
-    }
-
-    /**
-     * Describe validation parameters
-     *
-     * @param array $params
-     * @throws Integration_Exception
-     */
-    public function validate_params(array $params)
-    {
-        $accountId = Arr::get($params, 'accountId', '');
-
-        $available_accounts = Arr::get($this->meta, 'accounts', array());
-
-        if ( ! is_array($available_accounts))
-        {
-            $available_accounts = array();
-        }
-
-        if ( ! empty($accountId) AND ! isset($available_accounts[$accountId]))
-        {
-            throw new Integration_Exception(INT_E_WRONG_PARAMS, 'accountId', 'Account not found');
-        }
-
-        $listId = Arr::get($params, 'listId', '');
-
-        $available_lists = Arr::get($this->meta, 'campaigns', array());
-
-        if ( ! is_array($available_lists))
-        {
-            $available_lists = array();
-        }
-
-        if ( ! empty($listId) AND ! isset($available_lists[$listId]))
-        {
-            throw new Integration_Exception(INT_E_WRONG_PARAMS, 'listId', 'Campaign not found');
-        }
     }
 
     /**
@@ -649,7 +550,7 @@ class Integration_Driver_Drip extends Integration_OauthDriver implements Integra
 
         $access_token = $this->get_credentials('oauth.access_token', '');
         $account_id = $this->get_credentials('account_id', '');
-        $email = strtolower($email);
+        $email = mb_strtolower($email);
 
 		// Get person by email
 	    // @link https://developer.drip.com/?shell#fetch-a-subscriber
@@ -704,7 +605,7 @@ class Integration_Driver_Drip extends Integration_OauthDriver implements Integra
 
         $access_token = $this->get_credentials('oauth.access_token', '');
         $account_id =  $this->get_credentials('account_id', '');
-        $email = strtolower($email);
+        $email = mb_strtolower($email);
 
         $int_data = $this->translate_subscriber_data_to_int_data($subscriber_data, TRUE);
 
@@ -1164,10 +1065,11 @@ class Integration_Driver_Drip extends Integration_OauthDriver implements Integra
 	public function record_event($email, $params)
 	{
 		$event = Arr::get($params, 'event');
-		if ( ! isset($event))
+		if ( ! isset($event) OR empty($event))
 		{
 			throw new Integration_Exception(INT_E_WRONG_PARAMS);
 		}
+
 		$account_id = $this->get_credentials('account_id', '');
 		$access_token = $this->get_credentials('oauth.access_token', '');
 
