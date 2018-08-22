@@ -17,4 +17,8 @@ return array(
 		'title' => 'ConvertKit',
 		'ready_for' => Kohana::PRODUCTION,
 	),
+	'ConstantContact' => array(
+		'title' => 'Constant Contact',
+		'ready_for' => Kohana::PRODUCTION,
+	),
 );
