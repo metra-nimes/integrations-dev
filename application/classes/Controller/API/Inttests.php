@@ -57,15 +57,6 @@ class Controller_API_Inttests extends Controller_API {
 			$this->output['meta'] = $driver->get_meta();
 			$this->output['credentials'] = $driver->get_credentials();
 
-			$params = $driver->describe_params_fields();
-			if (! empty($params))
-			{
-				$this->output['params_fields'] = View::factory('cof/fieldset', array(
-					'fields' => $params,
-					'values' => array(),
-				))->render();
-			}
-
 			$automations = $driver->describe_automations();
 			if (! empty($automations))
 			{
