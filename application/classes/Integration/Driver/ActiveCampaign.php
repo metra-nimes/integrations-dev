@@ -240,6 +240,7 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 		$pipelines = (array) $this->get_meta('deal_pipelines', []);
 		$stages = (array) $this->get_meta('deal_stages', []);
 		$automations = (array) $this->get_meta('automations', []);
+		$forms = (array) $this->get_meta('forms', []);
 
 		return [
 			'add_contact_tag' => [
@@ -418,6 +419,24 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 						'rules' => [
 							['not_empty'],
 						],
+					],
+				],
+			],
+			'create_contact_via_form' => [
+				'title' => 'Add contact via form',
+				'params_fields' => [
+					'form_id' => [
+						'title' => 'Form Name',
+						'description' => NULL,
+						'type' => 'select',
+						'options' => Arr::merge([
+							'' => '(Not specified)'
+						],$forms),
+						'classes' => 'i-refreshable',
+						'rules' => [
+							['in_array', [':value', array_keys($forms)]],
+						],
+						'placeholder' => TRUE
 					],
 				],
 			],
@@ -1274,6 +1293,23 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 				throw new Integration_Exception(INT_E_FREQUENT_TEMPORARY_ERR);
 			}
 			throw new Integration_Exception(INT_E_WRONG_REQUEST);
+		}
+	}
+
+	public function create_contact_via_form($email, $params)
+	{
+		$current_form = Arr::get($params, 'form_id');
+		if ( ! isset($current_form) OR empty($current_form))
+		{
+			throw new Integration_Exception(INT_E_WRONG_PARAMS);
+		}
+
+		$subscriber = $this->get_subscriber($email);
+		if ($subscriber === NULL)
+		{
+			$this->contact_sync($email,array(
+				'form' => $current_form
+			));
 		}
 	}
 }
