@@ -14,16 +14,16 @@ class Integration_Driver_ConstantContact extends Integration_Driver implements I
 
 	public function describe_credentials_fields($refresh = FALSE)
 	{
-		return array(
-			'name' => array(
+		return [
+			'name' => [
 				'title' => 'Account Name',
 				'description' => 'It\'s an internal value, which can be helpful to identify a specific account in future.',
 				'type' => 'text',
-				'rules' => array(
-					array('not_empty'),
-				),
-			),
-			'oauth' => array(
+				'rules' => [
+					['not_empty'],
+				],
+			],
+			'oauth' => [
 				'title' => 'Connect with ConstantContact',
 				'type' => 'oauth',
 				// The name of array key that will contain token
@@ -34,11 +34,11 @@ class Integration_Driver_ConstantContact extends Integration_Driver implements I
 					'&client_id='.urlencode($this->get_key()).
 					'&redirect_uri='.URL::domain().'/api/integration/complete_oauth/ConstantContact',
 				'size' => '600x600',
-				'rules' => array(
-					array('not_empty'),
-				),
-			),
-		);
+				'rules' => [
+					['not_empty'],
+				],
+			]
+		];
 	}
 
 	public function get_endpoint()
@@ -172,18 +172,13 @@ class Integration_Driver_ConstantContact extends Integration_Driver implements I
 	 */
 	protected function create_custom_field($label)
 	{
-		// Enabling custom fields if they are disabled right now
-		if ( ! $this->get_params('specify_custom_fields'))
-		{
-			$this->params['specify_custom_fields'] = TRUE;
-		}
 		// Taking first spare field
 		for ($index = 1; $index < 16; $index++)
 		{
 			$field_name = 'custom_field_'.$index;
-			if (empty($this->params[$field_name.'_label']))
+			if (empty($this->meta['custom_field_label'][$field_name.'_label']))
 			{
-				$this->params[$field_name.'_label'] = $label;
+				$this->meta['custom_field_label'][$field_name.'_label']= $label;
 
 				return $field_name;
 			}
@@ -200,12 +195,13 @@ class Integration_Driver_ConstantContact extends Integration_Driver implements I
 	public function get_custom_fields()
 	{
 		$custom_fields = array();
-		if ($this->get_params('specify_custom_fields'))
+		if ( ! empty($this->meta['custom_field_label']))
 		{
 			for ($index = 1; $index < 16; $index++)
 			{
 				$field_name = 'custom_field_'.$index;
-				$field_label = $this->get_params($field_name.'_label', '');
+				//$field_label = $this->get_params($field_name.'_label', '');
+				$field_label = (isset($this->meta['custom_field_label'][$field_name.'_label'])) ? $this->meta['custom_field_label'][$field_name.'_label'] : $field_name.'_label';
 				if ( ! empty($field_label))
 				{
 					$custom_fields[$field_name] = $field_label;
