@@ -67,8 +67,6 @@ class Integration_Exception extends Exception {
 		$this->code = $code;
 		$this->field = $field;
 		$this->message = isset($message) ? $message : Arr::get(self::$errors, $code);
-		// TODO Log when needed
-		// TODO Notify when needed
 	}
 
 	/**
@@ -85,6 +83,7 @@ class Integration_Exception extends Exception {
 	/**
 	 * @param Model_Integration $integration
 	 * @param array $error_codes
+	 * @todo: refactor
 	 */
 	public static function retry(Model_Integration $integration, $error_codes = array(INT_E_WRONG_CREDENTIALS, INT_E_ACCOUNT_BLOCKED, INT_E_ACCOUNT_LIMITATION))
 	{
