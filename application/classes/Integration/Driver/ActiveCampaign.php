@@ -452,7 +452,7 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 	 */
 	public function create_custom_field($title)
 	{
-		$current_list = $this->get_params('list', '');
+		$current_list = $this->meta['current_list'];
 		foreach ($this->get_meta('custom_fields', array()) as $field_id => $field)
 		{
 			if ($field['title'] === $title)
@@ -581,11 +581,13 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 	 */
 	public function get_custom_fields($force_fetch = FALSE)
 	{
+		$current_list = $this->meta['current_list'];
+
 		if ($force_fetch)
 		{
 			$this->fetch_meta();
+			$this->meta['current_list'] = $current_list;
 		}
-		$current_list = $this->get_params('list', '');
 		$current_list_fields = $this->get_meta('lists_custom_fields.'.$current_list, array());
 		$result = array();
 		foreach ($this->get_meta('custom_fields', array()) as $field_id => $field)
@@ -773,12 +775,14 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 
 	public function add_contact_list($email, $params, $subscriber_data = NULL)
 	{
-		$int_data = $this->translate_subscriber_data_to_int_data($subscriber_data, TRUE);
 		$current_list = Arr::get($params, 'list_id');
 		if ( ! isset($current_list) OR empty($current_list))
 		{
 			throw new Integration_Exception(INT_E_WRONG_PARAMS);
 		}
+
+		$this->meta['current_list'] = $current_list;
+		$int_data = $this->translate_subscriber_data_to_int_data($subscriber_data, TRUE);
 
 		$subscriber = $this->get_subscriber($email);
 		if ($subscriber === NULL)
