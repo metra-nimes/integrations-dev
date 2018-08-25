@@ -17,4 +17,8 @@ return array(
 		'title' => 'ConvertKit',
 		'ready_for' => Kohana::PRODUCTION,
 	),
+	'GetResponse' => array(
+		'title' => 'GetResponse',
+		'ready_for' => Kohana::PRODUCTION,
+	),
 );
