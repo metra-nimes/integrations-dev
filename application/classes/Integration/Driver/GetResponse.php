@@ -28,20 +28,6 @@ class Integration_Driver_GetResponse extends Integration_Driver implements Integ
 		return 'https://api.getresponse.com/v3';
 	}
 
-	public function validate_params(array $params)
-	{
-		$campaign = Arr::get($params, 'campaign', '');
-		$available_campaigns = Arr::get($this->meta, 'campaigns', []);
-		if ( ! is_array($available_campaigns))
-		{
-			$available_campaigns = [];
-		}
-		if ( ! isset($available_campaigns[$campaign]))
-		{
-			throw new Integration_Exception(INT_E_WRONG_PARAMS, 'campaign', 'Campaign not found');
-		}
-	}
-
 	public function validate_credentials(array $credentials)
 	{
 		$name = Arr::get($credentials, 'name', '');
@@ -120,7 +106,7 @@ class Integration_Driver_GetResponse extends Integration_Driver implements Integ
 				}
 				elseif ($r->code == 500)
 				{
-					throw new Integration_Exception(INT_E_FREQUENT_TEMPORARY_ERR);
+					throw new Integration_Exception(INT_E_TEMPORARY_ERROR);
 				}
 				else
 				{
@@ -491,7 +477,7 @@ class Integration_Driver_GetResponse extends Integration_Driver implements Integ
 				}
 				elseif ($r->code == 500)
 				{
-					throw new Integration_Exception(INT_E_FREQUENT_TEMPORARY_ERR, 'api_key');
+					throw new Integration_Exception(INT_E_TEMPORARY_ERROR, 'api_key');
 				}
 				else
 				{
@@ -685,7 +671,7 @@ class Integration_Driver_GetResponse extends Integration_Driver implements Integ
 			}
 			elseif ($r->code == 500)
 			{
-				throw new Integration_Exception(INT_E_FREQUENT_TEMPORARY_ERR);
+				throw new Integration_Exception(INT_E_TEMPORARY_ERROR);
 			}
 			else
 			{
@@ -770,7 +756,7 @@ class Integration_Driver_GetResponse extends Integration_Driver implements Integ
 			}
 			elseif ($r->code == 500)
 			{
-				throw new Integration_Exception(INT_E_FREQUENT_TEMPORARY_ERR);
+				throw new Integration_Exception(INT_E_TEMPORARY_ERROR);
 			}
 			else
 			{
@@ -836,7 +822,7 @@ class Integration_Driver_GetResponse extends Integration_Driver implements Integ
 			}
 			elseif ($r->code == 500)
 			{
-				throw new Integration_Exception(INT_E_FREQUENT_TEMPORARY_ERR);
+				throw new Integration_Exception(INT_E_TEMPORARY_ERROR);
 			}
 			else
 			{
@@ -904,7 +890,7 @@ class Integration_Driver_GetResponse extends Integration_Driver implements Integ
 			}
 			elseif ($r->code == 500)
 			{
-				throw new Integration_Exception(INT_E_FREQUENT_TEMPORARY_ERR);
+				throw new Integration_Exception(INT_E_TEMPORARY_ERROR);
 			}
 			else
 			{
@@ -982,7 +968,7 @@ class Integration_Driver_GetResponse extends Integration_Driver implements Integ
 			}
 			elseif ($r->code == 500)
 			{
-				throw new Integration_Exception(INT_E_FREQUENT_TEMPORARY_ERR);
+				throw new Integration_Exception(INT_E_TEMPORARY_ERROR);
 			}
 			else
 			{
@@ -1049,7 +1035,7 @@ class Integration_Driver_GetResponse extends Integration_Driver implements Integ
 			}
 			elseif ($r->code == 500)
 			{
-				throw new Integration_Exception(INT_E_FREQUENT_TEMPORARY_ERR);
+				throw new Integration_Exception(INT_E_TEMPORARY_ERROR);
 			}
 			else
 			{
