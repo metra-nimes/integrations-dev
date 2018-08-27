@@ -14,30 +14,30 @@ class Integration_Driver_Klaviyo extends Integration_Driver implements Integrati
 
 	public function describe_credentials_fields($refresh = FALSE)
 	{
-		return array(
-			'name' => array(
+		return [
+			'name' => [
 				'title' => 'Account Name',
 				'description' => 'It\'s an internal value, which can be helpful to identify a specific account in future.',
 				'type' => 'text',
-				'rules' => array(
-					array('not_empty'),
-				),
-			),
-			'api_key' => array(
+				'rules' => [
+					['not_empty'],
+				],
+			],
+			'api_key' => [
 				'title' => 'Account API Key',
 				'description' => '<a href="/docs/integrations/klaviyo/#step-2-get-your-klaviyo-api-key" target="_blank">Read where to obtain this code</a>',
 				'type' => 'key',
-				'rules' => array(
-					array('regex', array(':value', '/^\S{10,}/i')),
-					array('not_empty'),
-				),
-			),
-			'submit' => array(
+				'rules' => [
+					['regex', [':value', '/^\S{10,}/i']],
+					['not_empty'],
+				],
+			],
+			'submit' => [
 				'title' => 'Connect with Klaviyo',
 				'action' => 'connect',
 				'type' => 'submit',
-			),
-		);
+			],
+		];
 	}
 
 	public function get_endpoint()
@@ -47,18 +47,18 @@ class Integration_Driver_Klaviyo extends Integration_Driver implements Integrati
 
 	public function fetch_meta()
 	{
-		$this->meta = array(
-			'lists' => array(),
-		);
+		$this->meta = [
+			'lists' => [],
+		];
 
 		// Get account meta
 		// https://www.klaviyo.com/docs/api/lists
 		$r = Integration_Request::factory()
 			->method('GET')
 			->url($this->get_endpoint().'/lists')
-			->data(array(
+			->data([
 				'api_key' => $this->get_credentials('api_key', ''),
-			))
+			])
 			->log_to($this->requests_log)
 			->execute();
 
@@ -124,12 +124,12 @@ class Integration_Driver_Klaviyo extends Integration_Driver implements Integrati
 	/**
 	 * @var array ConstantContact standard fields names for Convertful person fields
 	 */
-	protected $standard_fields = array(
+	protected $standard_fields = [
 		'first_name' => '$first_name',
 		'last_name' => '$last_name',
 		'phone' => '$phone_number',
 		'company' => '$organization',
-	);
+	];
 
 	public function translate_subscriber_data_to_int_data(array $subscriber_data, $create_missing_fields = FALSE)
 	{
@@ -143,7 +143,7 @@ class Integration_Driver_Klaviyo extends Integration_Driver implements Integrati
 				{
 					Arr::set_path($int_data, '$consent', 'web');
 				}
-				Arr::set_path($int_data, $key, $value?: NULL);
+				Arr::set_path($int_data, $key, $value ?: NULL);
 			}
 		}
 
@@ -158,9 +158,9 @@ class Integration_Driver_Klaviyo extends Integration_Driver implements Integrati
 		foreach ($this->standard_fields as $person_key => $int_key)
 		{
 			$value = Arr::path($subscriber_data, $person_key, NULL);
-			if (! is_null($value))
+			if ( ! is_null($value))
 			{
-				Arr::set_path($int_data, $int_key, $value?: NULL);
+				Arr::set_path($int_data, $int_key, $value ?: NULL);
 			}
 		}
 
@@ -180,7 +180,7 @@ class Integration_Driver_Klaviyo extends Integration_Driver implements Integrati
 
 	public function translate_int_data_to_subscriber_data(array $int_data)
 	{
-		$subscriber_data = array();
+		$subscriber_data = [];
 		foreach ($this->standard_fields as $person_key => $int_key)
 		{
 			if ($value = Arr::path($int_data, 'person.'.$int_key, NULL))
@@ -208,15 +208,15 @@ class Integration_Driver_Klaviyo extends Integration_Driver implements Integrati
 			// https://www.klaviyo.com/docs/api/lists#list-members
 			$r = Integration_Request::factory()
 				->method('GET')
-				->curl(array(
+				->curl([
 					CURLOPT_CONNECTTIMEOUT_MS => 15000,
 					CURLOPT_TIMEOUT_MS => 30000,
-				))
+				])
 				->url($endpoint_v1.'/list/'.$list_id.'/members')
-				->data(array(
+				->data([
 					'api_key' => $this->get_credentials('api_key', ''),
 					'email' => $email,
-				))
+				])
 				->log_to($this->requests_log)
 				->execute();
 
@@ -279,7 +279,7 @@ class Integration_Driver_Klaviyo extends Integration_Driver implements Integrati
 	 * @param array $subscriber_data
 	 * @throws Integration_Exception
 	 */
-	public function add_list_subscriber($email, $params, $subscriber_data = array())
+	public function add_list_subscriber($email, $params, $subscriber_data = [])
 	{
 		$current_list = Arr::get($params, 'list_id');
 		if ( ! isset($current_list) OR empty($current_list))
@@ -295,15 +295,15 @@ class Integration_Driver_Klaviyo extends Integration_Driver implements Integrati
 			->method('POST')
 			->header('Content-Type', 'application/json')
 			->url($this->get_endpoint().'/list/'.$current_list.'/members')
-			->data(array(
+			->data([
 				'api_key' => $this->get_credentials('api_key', ''),
-				'profiles' => array(array_merge($int_data,
-					array(
+				'profiles' => [array_merge($int_data,
+					[
 						'email' => $email,
 						'$consent' => 'web'
-					)
-				))
-			))
+					]
+				)]
+			])
 			->log_to($this->requests_log)
 			->execute();
 
@@ -334,10 +334,10 @@ class Integration_Driver_Klaviyo extends Integration_Driver implements Integrati
 			->method('DELETE')
 			->header('Content-Type', 'application/json')
 			->url($this->get_endpoint().'/list/'.$current_list.'/subscribe')
-			->data(array(
+			->data([
 				'api_key' => $this->get_credentials('api_key', ''),
-				'emails' => array($email)
-			))
+				'emails' => [$email]
+			])
 			->log_to($this->requests_log)
 			->execute();
 
