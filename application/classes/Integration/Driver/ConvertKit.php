@@ -183,48 +183,6 @@ class Integration_Driver_ConvertKit extends Integration_Driver implements Integr
 		];
 	}
 
-	public function describe_params_fields()
-	{
-		$forms = $this->get_meta('forms', []);
-
-		return [
-			'form' => [
-				'title' => 'ConvertKit Form',
-				'type' => 'select',
-				'description' => NULL,
-				'options' => $forms,
-				'classes' => 'i-refreshable',
-				'rules' => [
-					['in_array', [':value', array_keys($forms)]],
-					['not_empty'],
-				],
-			],
-			'tags' => [
-				'title' => 'Tags to Mark with',
-				'type' => 'select2',
-				'description' => NULL,
-				'options' => $this->get_meta('tags', []),
-				'multiple' => TRUE,
-				'rules' => [
-					[function ($tags) {
-						if (empty($tags))
-						{
-							return;
-						}
-
-						foreach ($tags as $tag)
-						{
-							if ( ! Valid::alpha_numeric($tag))
-							{
-								throw new Integration_Exception(INT_E_WRONG_PARAMS, 'tags', 'Tags should be alphanumeric');
-							}
-						}
-					}, [':value']],
-				],
-			],
-		];
-	}
-
 	/**
 	 * @var array Merge fields tag names for Convertful person fields
 	 */
@@ -482,7 +440,7 @@ class Integration_Driver_ConvertKit extends Integration_Driver implements Integr
 		}
 		elseif ($r->code == 500)
 		{
-			throw new Integration_Exception(INT_E_FREQUENT_TEMPORARY_ERR);
+			throw new Integration_Exception(INT_E_TEMPORARY_ERROR);
 		}
 
 		return TRUE;
