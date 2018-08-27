@@ -260,7 +260,6 @@ abstract class Integration_DriverTest extends Unittest_TestCase {
 		$stored_person_data = Integration_Driver::factory($this->get_driver_name())
 			->set_credentials($this->driver->get_credentials())
 			->set_meta($this->driver->get_meta())
-			->set_params($this->driver->get_params())
 			->get_person($email);
 		$this->assertEquals($person_data, $stored_person_data);
 	}

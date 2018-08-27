@@ -9,8 +9,8 @@
  *    specified here.
  * 2. Meta - fetched from integration provider using the credentials, some account-related information that will be used
  *    later. Example: available lists, internal account name (if it can be fetched).
- * 3. Params - entered by customer, used to connect a specific widget to a specific integrated account. Example: a
- *    subscription list to add users to, use double opt-in?, send welcome message?
+ * 3. Automations - entered by customer, used to describe a specific actions.
+ *    Example: subscribe user to list, add tag to user
  * 4. Person Data - data about a person in Convertful internal format
  * 5. Integration Data (short: int_data) - data about a person in integration-compatible format (may vary depending on
  *    whether it's in or out data)
@@ -23,11 +23,10 @@ abstract class Integration_Driver {
 	 * @param string $driver_name
 	 * @param array $credentials If provided will be validated
 	 * @param array $meta
-	 * @param array $params If provided will be validated
 	 * @return Integration_Driver|Integration_OauthDriver
 	 * @throws Exception
 	 */
-	public static function factory($driver_name, array $credentials = NULL, array $meta = NULL, array $params = NULL)
+	public static function factory($driver_name, array $credentials = NULL, array $meta = NULL)
 	{
 		$class_name = 'Integration_Driver_'.$driver_name;
 		if ( ! class_exists($class_name))
@@ -35,22 +34,30 @@ abstract class Integration_Driver {
 			throw new Exception('Driver class '.$class_name.' not found');
 		}
 
-		return new $class_name($credentials, $meta, $params);
+		return new $class_name($credentials, $meta);
 	}
 
-	protected function __construct(array $credentials = NULL, array $meta = NULL, array $params = NULL)
+	/**
+	 * Integration_Driver constructor.
+	 *
+	 * @param array|NULL $credentials
+	 * @param array|NULL $meta
+	 */
+	protected function __construct(array $credentials = NULL, array $meta = NULL)
 	{
-		if ($credentials !== NULL)
+		try
 		{
-			$this->set_credentials($credentials);
+			if ($credentials !== NULL)
+			{
+				$this->set_credentials($credentials);
+			}
+			if ($meta !== NULL)
+			{
+				$this->set_meta($meta);
+			}
 		}
-		if ($meta !== NULL)
+		catch (Integration_Exception $e)
 		{
-			$this->set_meta($meta);
-		}
-		if ($params !== NULL)
-		{
-			$this->set_params($params);
 		}
 	}
 
@@ -89,7 +96,7 @@ abstract class Integration_Driver {
 	 */
 	public static function get_company_info()
 	{
-		return static::$company_name . ' (' .static::$company_url . ')';
+		return static::$company_name.' ('.static::$company_url.')';
 	}
 
 	/**
@@ -157,6 +164,7 @@ abstract class Integration_Driver {
 			$this->validate_credentials($credentials);
 		}
 		$this->credentials = $credentials;
+
 		return $this;
 	}
 
@@ -256,6 +264,7 @@ abstract class Integration_Driver {
 	public function set_meta(array $meta)
 	{
 		$this->meta = $meta;
+
 		return $this;
 	}
 
@@ -278,94 +287,17 @@ abstract class Integration_Driver {
 	}
 
 	/**
-	 * @var array Integration Params
+	 * @var array Integration automations
 	 */
-	protected $params;
-
-	/**
-	 * Describes COF fieldset config to render widget integration parameters
-	 *
-	 * @return array COF fieldset config for params form, so a user could connect specific optin with integration
-	 */
-	public function describe_params_fields(){
-		return [];
-	}
-
-	/**
-	 * Format the entered credentials data before it's validated and saved in a database. This function is efficient for
-	 * removing excess spaces and providing fault tolerance for all kinds of alternative spellings for entered data.
-	 *
-	 * (!) When overloading this function make sure this parent function is called first
-	 *
-	 * @param array $params
-	 * @return array
-	 */
-	public function filter_params(array $params)
-	{
-		return COF::filter_values($params, $this->describe_params_fields());
-	}
-
-	/**
-	 * Validates entered params
-	 *
-	 * @param array $params
-	 * @throws Integration_Exception if params are not valid
-	 */
-	public function validate_params(array $params)
-	{
-		$errors = array();
-		if ( ! COF::validate_values($params, $this->describe_params_fields(), $errors))
-		{
-			foreach ($errors as $f_name => $error)
-			{
-				throw new Integration_Exception(INT_E_WRONG_PARAMS, $f_name, $error);
-			}
-		}
-	}
-
-	/**
-	 * Set params
-	 *
-	 * @param array $params
-	 * @param bool $validate
-	 * @return self
-	 * @chainable
-	 */
-	public function set_params(array $params, $validate = FALSE)
-	{
-		$this->params = $this->filter_params($params);
-		if ($validate)
-		{
-			$this->validate_params($this->params);
-		}
-		return $this;
-	}
-
-	/**
-	 * Get params
-	 *
-	 * @param string $path
-	 * @param mixed $default
-	 * @return mixed
-	 */
-	public function get_params($path = NULL, $default = NULL)
-	{
-		$params = $this->params;
-		if ($path === NULL)
-		{
-			return $params;
-		}
-
-		return Arr::path($params, $path, $default);
-	}
+	protected $automations;
 
 	/**
 	 * Rules for form fields
 	 * array(
 	 *   'type' => array(
-	 *	    array('rule', array(":field", ":value"), 'Error text'),
-	 *	  )
-	 *	);
+	 *        array('rule', array(":field", ":value"), 'Error text'),
+	 *      )
+	 *    );
 	 *
 	 * @return array
 	 */
@@ -407,22 +339,133 @@ abstract class Integration_Driver {
 	 * Execute automation
 	 *
 	 * @param string $name
-	 * @param array $params
+	 * @param array $params automation params
 	 * @param array $subscriber_data
 	 *
-	 * @return
+	 * @throws Integration_Exception
 	 */
 	public function exec_automation($name, $params, $subscriber_data)
 	{
-		//TODO: validate automation name and params
-
 		$email = Arr::get($subscriber_data, 'email', '');
 		unset($subscriber_data['email']);
 		if (empty($email) OR ! Valid::email($email))
 		{
-			return $this->add_error('Please enter a valid email', 'email');
+			throw new Integration_Exception(INT_E_WRONG_DATA, 'email', 'Please enter a valid email');
 		}
 
-		return $this->{$name}($email, $params, $subscriber_data);
+		if ( ! method_exists($this, $name))
+		{
+			throw new Integration_Exception(INT_E_WRONG_REQUEST, $name, 'Automation is not valid');
+		}
+		$this->{$name}($email, $params, $subscriber_data);
+	}
+
+	/**
+	 * @param array $subscriber_data
+	 * @throws Integration_Exception
+	 */
+	public function exec_automations(array $subscriber_data = [])
+	{
+		foreach ($this->automations as $automation_id => $automation_params)
+		{
+			$automation_type = self::get_type_by_id($automation_id);
+			$this->exec_automation($automation_type, $automation_params, $subscriber_data);
+		}
+	}
+
+	/**
+	 * Validates entered automations and it's params
+	 *
+	 * @param array $automations
+	 * @throws Integration_Exception if automation params are not valid
+	 */
+	public function validate_automations(array $automations)
+	{
+		$errors = [];
+		$automations_configs = $this->describe_automations();
+		foreach ($automations as $automation_id => $automation)
+		{
+			$automation_type = self::get_type_by_id($automation_id);
+			$automation_rules = Arr::path($automations_configs, [$automation_type, 'params_fields'], []);
+			if (empty($automation_rules))
+			{
+				throw new Integration_Exception(INT_E_WRONG_PARAMS, $automation_id, 'Automation params are empty');
+			}
+
+			if ( ! COF::validate_values($automation, $automation_rules, $errors))
+			{
+				foreach ($errors as $f_name => $error)
+				{
+					throw new Integration_Exception(INT_E_WRONG_PARAMS, $f_name, $error);
+				}
+			}
+		}
+	}
+
+	/**
+	 * Set automations
+	 *
+	 * @param array $automations
+	 * @param bool $validate
+	 * @return self
+	 * @chainable
+	 * @throws Integration_Exception
+	 */
+	public function set_automations(array $automations, $validate = FALSE)
+	{
+		$this->automations = $this->filter_automations($automations);
+		if ($validate)
+		{
+			$this->validate_automations($this->automations);
+		}
+
+		return $this;
+	}
+
+	/**
+	 * @todo: phpDoc
+	 * @param array $automations
+	 * @return array
+	 */
+	public function filter_automations(array $automations)
+	{
+		$automations_configs = $this->describe_automations();
+		$filtered_automations = [];
+		foreach ($automations as $automation_id => $automation_params)
+		{
+			$automation_type = self::get_type_by_id($automation_id);
+			$filtered_automations[$automation_id] = COF::filter_values((array) $automation_params, (array) Arr::path($automations_configs, [$automation_type, 'params_fields'], []));
+		}
+
+		return $filtered_automations;
+	}
+
+	/**
+	 * Get automations
+	 *
+	 * @param string $path
+	 * @param mixed $default
+	 * @return mixed
+	 */
+	public function get_automations($path = NULL, $default = [])
+	{
+		$automations = $this->automations;
+		if ($path === NULL)
+		{
+			return $automations;
+		}
+
+		return Arr::path($automations, $path, $default);
+	}
+
+	/**
+	 * Get automation type by ID
+	 *
+	 * @param $id
+	 * @return mixed
+	 */
+	public static function get_type_by_id($id)
+	{
+		return preg_match('~^([a-z_]+)\:?[\d]*$~', $id, $matches) ? $matches[1] : $id;
 	}
 }
