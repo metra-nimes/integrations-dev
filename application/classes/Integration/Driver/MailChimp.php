@@ -132,13 +132,13 @@ class Integration_Driver_MailChimp extends Integration_Driver implements Integra
                     throw new Integration_Exception(INT_E_WRONG_CREDENTIALS, 'api_key', 'Account API Key is not valid');
                     break;
                 case 404:
-                    throw new Integration_Exception(INT_E_SERVER_NOT_AVAILABLE);
+                    throw new Integration_Exception(INT_E_TEMPORARY_ERROR);
                     break;
                 case 409:
-                    throw new Integration_Exception(INT_E_TOO_FREQUENT_REQUESTS);
+                    throw new Integration_Exception(INT_E_TEMPORARY_ERROR);
                     break;
                 case 500:
-                    throw new Integration_Exception(INT_E_INTERNAL_SERVER_ERROR);
+                    throw new Integration_Exception(INT_E_TEMPORARY_ERROR);
                     break;
                 default:
                     throw new Integration_Exception(INT_E_WRONG_REQUEST);
@@ -199,13 +199,13 @@ class Integration_Driver_MailChimp extends Integration_Driver implements Integra
                         throw new Integration_Exception(INT_E_WRONG_CREDENTIALS, 'api_key', 'Account API Key is not valid');
                         break;
                     case 404:
-                        throw new Integration_Exception(INT_E_SERVER_NOT_AVAILABLE);
+                        throw new Integration_Exception(INT_E_TEMPORARY_ERROR);
                         break;
                     case 409:
-                        throw new Integration_Exception(INT_E_TOO_FREQUENT_REQUESTS);
+                        throw new Integration_Exception(INT_E_TEMPORARY_ERROR);
                         break;
                     case 500:
-                        throw new Integration_Exception(INT_E_INTERNAL_SERVER_ERROR);
+                        throw new Integration_Exception(INT_E_TEMPORARY_ERROR);
                         break;
                     default:
                         throw new Integration_Exception(INT_E_WRONG_REQUEST);
@@ -246,13 +246,13 @@ class Integration_Driver_MailChimp extends Integration_Driver implements Integra
                             throw new Integration_Exception(INT_E_WRONG_CREDENTIALS, 'api_key', 'Account API Key is not valid');
                             break;
                         case 404:
-                            throw new Integration_Exception(INT_E_SERVER_NOT_AVAILABLE);
+                            throw new Integration_Exception(INT_E_TEMPORARY_ERROR);
                             break;
                         case 409:
-                            throw new Integration_Exception(INT_E_TOO_FREQUENT_REQUESTS);
+                            throw new Integration_Exception(INT_E_TEMPORARY_ERROR);
                             break;
                         case 500:
-                            throw new Integration_Exception(INT_E_INTERNAL_SERVER_ERROR);
+                            throw new Integration_Exception(INT_E_TEMPORARY_ERROR);
                             break;
                         default:
                             throw new Integration_Exception(INT_E_WRONG_REQUEST);
@@ -318,13 +318,13 @@ class Integration_Driver_MailChimp extends Integration_Driver implements Integra
                         throw new Integration_Exception(INT_E_WRONG_CREDENTIALS, 'api_key', 'Account API Key is not valid');
                         break;
                     case 404:
-                        throw new Integration_Exception(INT_E_SERVER_NOT_AVAILABLE);
+                        throw new Integration_Exception(INT_E_TEMPORARY_ERROR);
                         break;
                     case 409:
-                        throw new Integration_Exception(INT_E_TOO_FREQUENT_REQUESTS);
+                        throw new Integration_Exception(INT_E_TEMPORARY_ERROR);
                         break;
                     case 500:
-                        throw new Integration_Exception(INT_E_INTERNAL_SERVER_ERROR);
+                        throw new Integration_Exception(INT_E_TEMPORARY_ERROR);
                         break;
                     default:
                         throw new Integration_Exception(INT_E_WRONG_REQUEST);
@@ -402,13 +402,13 @@ class Integration_Driver_MailChimp extends Integration_Driver implements Integra
                         throw new Integration_Exception(INT_E_WRONG_CREDENTIALS, 'api_key', 'Account API Key is not valid');
                         break;
                     case 404:
-                        throw new Integration_Exception(INT_E_SERVER_NOT_AVAILABLE);
+                        throw new Integration_Exception(INT_E_TEMPORARY_ERROR);
                         break;
                     case 409:
-                        throw new Integration_Exception(INT_E_TOO_FREQUENT_REQUESTS);
+                        throw new Integration_Exception(INT_E_TEMPORARY_ERROR);
                         break;
                     case 500:
-                        throw new Integration_Exception(INT_E_INTERNAL_SERVER_ERROR);
+                        throw new Integration_Exception(INT_E_TEMPORARY_ERROR);
                         break;
                     default:
                         throw new Integration_Exception(INT_E_WRONG_REQUEST);
@@ -478,7 +478,7 @@ class Integration_Driver_MailChimp extends Integration_Driver implements Integra
                     throw new Integration_Exception(INT_E_WRONG_CREDENTIALS, 'api_key', 'Account API Key is not valid');
                     break;
                 case 500:
-                    throw new Integration_Exception(INT_E_INTERNAL_SERVER_ERROR);
+                    throw new Integration_Exception(INT_E_TEMPORARY_ERROR);
                     break;
                 default:
                     break;
@@ -618,10 +618,10 @@ class Integration_Driver_MailChimp extends Integration_Driver implements Integra
                         throw new Integration_Exception(INT_E_WRONG_PARAMS);
                         break;
                     case 500:
-                        throw new Integration_Exception(INT_E_INTERNAL_SERVER_ERROR);
+                        throw new Integration_Exception(INT_E_TEMPORARY_ERROR);
                         break;
                     case 508:
-                        throw new Integration_Exception(INT_E_SERVER_NOT_AVAILABLE);
+                        throw new Integration_Exception(INT_E_TEMPORARY_ERROR);
                         break;
                     default:
                         throw new Integration_Exception(INT_E_WRONG_REQUEST);
@@ -637,7 +637,7 @@ class Integration_Driver_MailChimp extends Integration_Driver implements Integra
             throw new Integration_Exception(INT_E_WRONG_PARAMS, $key, Arr::get($this->_errors_create_tag, $key));
         }
 
-        // Verifying email
+        /*// Verifying email
         if (mb_strtolower($res->get('email_address')) !== mb_strtolower($email))
         {
             throw new Integration_Exception(INT_E_EMAIL_NOT_VERIFIED);
@@ -651,7 +651,7 @@ class Integration_Driver_MailChimp extends Integration_Driver implements Integra
             {
                 throw new Integration_Exception(INT_E_DATA_NOT_VERIFIED, $f_tag);
             }
-        }
+        }*/
 
         unset($list_id);
         return $res->data;
@@ -1246,10 +1246,10 @@ class Integration_Driver_MailChimp extends Integration_Driver implements Integra
                     return;
                     break;
                 case 500:
-                    throw new Integration_Exception(INT_E_INTERNAL_SERVER_ERROR);
+                    throw new Integration_Exception(INT_E_TEMPORARY_ERROR);
                     break;
                 case 508:
-                    throw new Integration_Exception(INT_E_SERVER_NOT_AVAILABLE);
+                    throw new Integration_Exception(INT_E_TEMPORARY_ERROR);
                     break;
                 default:
                     throw new Integration_Exception(INT_E_WRONG_REQUEST);
@@ -1375,10 +1375,10 @@ class Integration_Driver_MailChimp extends Integration_Driver implements Integra
                     throw new Integration_Exception(INT_E_WRONG_PARAMS);
                     break;
                 case 500:
-                    throw new Integration_Exception(INT_E_INTERNAL_SERVER_ERROR);
+                    throw new Integration_Exception(INT_E_TEMPORARY_ERROR);
                     break;
                 case 508:
-                    throw new Integration_Exception(INT_E_SERVER_NOT_AVAILABLE);
+                    throw new Integration_Exception(INT_E_TEMPORARY_ERROR);
                     break;
                 default:
                     throw new Integration_Exception(INT_E_WRONG_REQUEST);
@@ -1433,10 +1433,10 @@ class Integration_Driver_MailChimp extends Integration_Driver implements Integra
                     return;
                     break;
                 case 500:
-                    throw new Integration_Exception(INT_E_INTERNAL_SERVER_ERROR);
+                    throw new Integration_Exception(INT_E_TEMPORARY_ERROR);
                     break;
                 case 508:
-                    throw new Integration_Exception(INT_E_SERVER_NOT_AVAILABLE);
+                    throw new Integration_Exception(INT_E_TEMPORARY_ERROR);
                     break;
                 default:
                     throw new Integration_Exception(INT_E_WRONG_REQUEST);
@@ -1545,10 +1545,10 @@ class Integration_Driver_MailChimp extends Integration_Driver implements Integra
                     throw new Integration_Exception(INT_E_WRONG_PARAMS);
                     break;
                 case 500:
-                    throw new Integration_Exception(INT_E_INTERNAL_SERVER_ERROR);
+                    throw new Integration_Exception(INT_E_TEMPORARY_ERROR);
                     break;
                 case 508:
-                    throw new Integration_Exception(INT_E_SERVER_NOT_AVAILABLE);
+                    throw new Integration_Exception(INT_E_TEMPORARY_ERROR);
                     break;
                 default:
                     throw new Integration_Exception(INT_E_WRONG_REQUEST);
