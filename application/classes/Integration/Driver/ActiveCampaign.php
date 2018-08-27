@@ -101,7 +101,7 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 			'automations' => 'automation_list',
 			'deal_pipelines' => 'deal_pipeline_list',
 			'deal_stages' => 'deal_stage_list',
-			'forms' => 'form_getforms'
+			'forms' => 'form_getforms',
 		];
 
 		foreach ($meta_actions as $meta_key => $action)
@@ -251,13 +251,13 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 						'description' => NULL,
 						'type' => 'select',
 						'options' => Arr::merge([
-							'' => '(Not specified)'
+							'' => '(Not specified)',
 						], $tags),
 						'classes' => 'i-refreshable',
 						'rules' => [
 							['in_array', [':value', array_keys($tags)]],
 						],
-						'placeholder' => TRUE
+						'placeholder' => TRUE,
 					],
 				],
 			],
@@ -269,13 +269,13 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 						'description' => NULL,
 						'type' => 'select',
 						'options' => Arr::merge([
-							'' => '(Not specified)'
+							'' => '(Not specified)',
 						], $tags),
 						'classes' => 'i-refreshable',
 						'rules' => [
 							['in_array', [':value', array_keys($tags)]],
 						],
-						'placeholder' => TRUE
+						'placeholder' => TRUE,
 					],
 				],
 			],
@@ -287,13 +287,13 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 						'description' => NULL,
 						'type' => 'select',
 						'options' => Arr::merge([
-							'' => '(Not specified)'
+							'' => '(Not specified)',
 						], $lists),
 						'classes' => 'i-refreshable',
 						'rules' => [
 							['in_array', [':value', array_keys($lists)]],
 						],
-						'placeholder' => TRUE
+						'placeholder' => TRUE,
 					],
 				],
 				'is_default' => TRUE,
@@ -306,13 +306,13 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 						'description' => NULL,
 						'type' => 'select',
 						'options' => Arr::merge([
-							'' => '(Not specified)'
+							'' => '(Not specified)',
 						], $lists),
 						'classes' => 'i-refreshable',
 						'rules' => [
 							['in_array', [':value', array_keys($lists)]],
 						],
-						'placeholder' => TRUE
+						'placeholder' => TRUE,
 					],
 				],
 			],
@@ -324,20 +324,20 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 						'description' => NULL,
 						'type' => 'select',
 						'options' => Arr::merge([
-							'' => '(Not specified)'
+							'' => '(Not specified)',
 						], $pipelines),
 						'classes' => 'i-refreshable',
 						'rules' => [
 							['in_array', [':value', array_keys($pipelines)]],
 						],
-						'placeholder' => TRUE
+						'placeholder' => TRUE,
 					],
 					'stage_id' => [
 						'title' => 'Stage Name',
 						'description' => NULL,
 						'type' => 'select',
 						'options' => Arr::merge([
-							'' => '(Not specified)'
+							'' => '(Not specified)',
 						], $stages),
 						'options_labels' => $pipelines,
 						'classes' => 'i-refreshable',
@@ -345,9 +345,9 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 							['in_array', [':value', array_keys($stages)]],
 						],
 						'influence' => [
-							'deal_pipeline'
+							'deal_pipeline',
 						],
-						'placeholder' => TRUE
+						'placeholder' => TRUE,
 					],
 				],
 			],
@@ -359,7 +359,7 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 						'description' => NULL,
 						'type' => 'select',
 						'options' => Arr::merge([
-							'' => '(Not specified)'
+							'' => '(Not specified)',
 						], $stages),
 						'options_labels' => $pipelines,
 						'classes' => 'i-refreshable',
@@ -367,9 +367,9 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 							['in_array', [':value', array_keys($stages)]],
 						],
 						'influence' => [
-							'deal_pipeline'
+							'deal_pipeline',
 						],
-						'placeholder' => TRUE
+						'placeholder' => TRUE,
 					],
 				],
 			],
@@ -381,13 +381,13 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 						'description' => NULL,
 						'type' => 'select',
 						'options' => Arr::merge([
-							'' => '(Not specified)'
+							'' => '(Not specified)',
 						], $automations),
 						'classes' => 'i-refreshable',
 						'rules' => [
 							['in_array', [':value', array_keys($automations)]],
 						],
-						'placeholder' => TRUE
+						'placeholder' => TRUE,
 					],
 				],
 			],
@@ -399,13 +399,13 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 						'description' => NULL,
 						'type' => 'select',
 						'options' => Arr::merge([
-							'' => '(Not specified)'
+							'' => '(Not specified)',
 						], $automations),
 						'classes' => 'i-refreshable',
 						'rules' => [
 							['in_array', [':value', array_keys($automations)]],
 						],
-						'placeholder' => TRUE
+						'placeholder' => TRUE,
 					],
 				],
 			],
@@ -430,13 +430,13 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 						'description' => NULL,
 						'type' => 'select',
 						'options' => Arr::merge([
-							'' => '(Not specified)'
+							'' => '(Not specified)',
 						], $forms),
 						'classes' => 'i-refreshable',
 						'rules' => [
 							['in_array', [':value', array_keys($forms)]],
 						],
-						'placeholder' => TRUE
+						'placeholder' => TRUE,
 					],
 				],
 			],
@@ -769,6 +769,7 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 			return NULL;
 		}
 		$subscriber_data = $this->translate_int_data_to_subscriber_data($r->get('0'));
+
 		return $subscriber_data;
 	}
 
