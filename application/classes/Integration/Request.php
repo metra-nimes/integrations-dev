@@ -19,12 +19,23 @@ class Integration_Request {
 	/**
 	 * @var array Request headers
 	 */
-	protected $headers = array();
+	protected $headers = [];
+
+	/**
+	 * @var array oAuth headers
+	 */
+	protected $oauth_params = [];
+
+	/**
+	 * The key for creating a oAuth signature
+	 * @var string
+	 */
+	private $oauth_key = NULL;
 
 	/**
 	 * @var array Request cookies
 	 */
-	protected $cookies = array();
+	protected $cookies = [];
 
 	/**
 	 * @var string Request URL
@@ -34,12 +45,12 @@ class Integration_Request {
 	/**
 	 * @var array|string POST/GET-data that should be sent
 	 */
-	protected $data = array();
+	protected $data = [];
 
 	/**
 	 * @var array Response headers
 	 */
-	protected $response_headers = array();
+	protected $response_headers = [];
 
 	/**
 	 * @var array|null Response log
@@ -47,17 +58,17 @@ class Integration_Request {
 	public $_log = array();
 
 
-	protected $curl_options = array(
-		CURLOPT_FRESH_CONNECT => TRUE,
-		CURLOPT_TCP_NODELAY => TRUE,
+	protected $curl_options = [
+		CURLOPT_FRESH_CONNECT     => TRUE,
+		CURLOPT_TCP_NODELAY       => TRUE,
 		CURLOPT_CONNECTTIMEOUT_MS => 5000,
-		CURLOPT_TIMEOUT_MS => 12000,
-		CURLOPT_FAILONERROR => FALSE,
-		CURLOPT_SSL_VERIFYPEER => FALSE,
-		CURLOPT_SSL_VERIFYHOST => FALSE,
+		CURLOPT_TIMEOUT_MS        => 12000,
+		CURLOPT_FAILONERROR       => FALSE,
+		CURLOPT_SSL_VERIFYPEER    => FALSE,
+		CURLOPT_SSL_VERIFYHOST    => FALSE,
 		// TODO define correct user-agent. FeedBlitz API does not accept POST request without it
-		CURLOPT_USERAGENT => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.12; rv:49.0) Gecko/20100101 Firefox/49.0',
-	);
+		CURLOPT_USERAGENT         => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.12; rv:49.0) Gecko/20100101 Firefox/49.0',
+	];
 
 	/**
 	 * Method setter/getter
@@ -200,68 +211,76 @@ class Integration_Request {
 	}
 
 	/**
-	 * Sign the oauth request using hmac-sha1 method
+	 * * Request headers setter/getter
 	 *
-	 * @link https://oauth.net/core/1.0a/
-	 * @link https://nullinfo.wordpress.com/oauth-twitter/
+	 * @chainable
+	 * @param string $key
+	 * @param  string $value
+	 * @return Integration_Request|string
+	 */
+	public function oauth_param($key, $value = NULL)
+	{
+		if ($value === NULL)
+		{
+			return Arr::get($this->oauth_params, $key);
+		}
+		$this->oauth_params[$key] = $value;
+		return $this;
+	}
+
+	/**
+	 * Request oauth params setter/getter
+	 *
+	 * @chainable
+	 * @param  array $oauth_params
+	 * @return Integration_Request|string
+	 */
+	public function oauth_params($oauth_params = NULL)
+	{
+		if ($oauth_params === NULL)
+		{
+			return $this->oauth_params;
+		}
+		$this->oauth_params = array_merge($this->oauth_params, $oauth_params);
+		return $this;
+	}
+
+	/**
+	 * Sign the oauth request using hmac-sha1 method
+	 * This method is called after the installation of data and oauth_params!
 	 *
 	 * @param string $key
 	 * @param string $secret
 	 * @param string $oauth_token
 	 * @param string $oauth_secret
 	 * @return Integration_Request
+	 *
+	 * @link https://oauth.net/core/1.0a/
+	 * @link https://nullinfo.wordpress.com/oauth-twitter/
 	 */
-	public function twitter_oauth_signature($key, $secret, $oauth_token = '', $oauth_secret = '')
+	public function generate_oauth_signature(string $key, string $secret, string $oauth_token = '', string $oauth_secret = '')
 	{
-		$headers = array(
-			'oauth_consumer_key' => $key,
-			'oauth_nonce' => md5(microtime().mt_rand()),
+		$params = [
+			'oauth_consumer_key'     => $key,
+			'oauth_nonce'            => md5(microtime().mt_rand()),
 			'oauth_signature_method' => 'HMAC-SHA1',
-			'oauth_timestamp' => time(),
-			'oauth_version' => '1.0',
-		);
+			'oauth_timestamp'        => time(),
+			'oauth_version'          => '1.0',
+		];
 
 		if (! empty($oauth_token))
 		{
-			$headers['oauth_token'] = $oauth_token;
+			$this->oauth_params['oauth_token'] = $oauth_token;
 		}
 
-		if (! empty($this->headers))
+		if (! empty($this->oauth_params))
 		{
-			$headers = array_merge($headers, $this->headers);
+			$this->oauth_params = array_merge($params, $this->oauth_params);
 		}
 
-		if ( ! empty($this->data))
-		{
-			$headers = array_merge($this->data, $headers);
-		}
+		$this->oauth_key = rawurlencode($secret).'&'.rawurlencode($oauth_secret);
 
-		ksort($headers);
-
-		$signature_string = strtoupper($this->method).'&'.rawurlencode($this->url).'&'.rawurlencode(http_build_query($headers, NULL, '&', PHP_QUERY_RFC3986));
-
-		$signature_key = rawurlencode($secret).'&'.rawurlencode($oauth_secret);
-		$signature = base64_encode(hash_hmac('sha1', $signature_string, $signature_key, TRUE));
-
-		$headers['oauth_signature'] = $signature;
-		ksort($headers);
-
-		if (isset($headers['oauth_verifier']))
-		{
-			unset($headers['oauth_verifier']);
-		}
-
-		$request_headers = 'OAuth';
-		$first = TRUE;
-		foreach ($headers as $key => $val)
-		{
-			$request_headers .= ($first) ? ' ' : ", ";
-			$request_headers .= rawurlencode($key).'="'.rawurlencode($val).'"';
-			$first = FALSE;
-		}
-		$this->headers = array();
-		$this->header('Authorization', $request_headers);
-
+		unset($params);
 		return $this;
 	}
 
@@ -273,6 +292,46 @@ class Integration_Request {
 	{
 		// Curl options
 		$options = $this->curl_options;
+
+		// Create oauth signature
+		if (count($this->oauth_params) AND $this->oauth_key !== NULL)
+		{
+			if ( ! empty($this->data))
+			{
+				$this->oauth_params = Arr::merge($this->data, $this->oauth_params);
+			}
+
+			Arr::recursive_ksort($this->oauth_params);
+
+			$sig_string = strtoupper($this->method).'&'.
+								rawurlencode($this->url).'&'.
+								rawurlencode(http_build_query($this->oauth_params, NULL, '&', PHP_QUERY_RFC3986));
+
+			$signature  = base64_encode(hash_hmac('sha1', $sig_string, $this->oauth_key, TRUE));
+			$this->oauth_params['oauth_signature'] = $signature;
+			Arr::recursive_ksort($this->oauth_params);
+
+			if( ! empty($this->data))
+			{
+				# https://oauth.net/core/1.0a/#RFC3986
+				$this->data = $this->oauth_params;
+			}
+			else
+			{
+				$request_param = 'OAuth';
+				$first = TRUE;
+				foreach ($this->oauth_params as $key => $val)
+				{
+					$request_param .= ($first) ? ' ' : ", ";
+					$request_param .= rawurlencode($key).'="'.rawurlencode($val).'"';
+					$first = FALSE;
+				}
+				$this->header('Authorization', $request_param);
+			}
+
+			$this->oauth_params = [];
+			$this->oauth_key = NULL;
+		}
 
 		if ($this->method === 'POST')
 		{
@@ -320,7 +379,7 @@ class Integration_Request {
 
 		if ( ! empty($this->headers))
 		{
-			$headers = array();
+			$headers = [];
 			foreach ($this->headers as $key => $value)
 			{
 				$headers[] = $key.': '.$value;
@@ -334,8 +393,8 @@ class Integration_Request {
 		}
 
 		$options[CURLOPT_RETURNTRANSFER] = TRUE;
-		$options[CURLOPT_HEADERFUNCTION] = array($this, 'parse_response_headers');
-		$options[CURLOPT_HEADER] = FALSE;
+		$options[CURLOPT_HEADERFUNCTION] = [$this, 'parse_response_headers'];
+		$options[CURLOPT_HEADER]         = FALSE;
 
 		$url = $this->url;
 		if ($this->method === 'GET' AND ! empty($this->data))
@@ -386,16 +445,16 @@ class Integration_Request {
 		}
 
 		$response = new Integration_Response($this, $code, $body, $this->response_headers, $force_format);
-		$this->_log[] = array(
-			'request' => $this->method().' '.$url,
-			'request_made_at' => date('Y-m-d H:i:s'),
-			'request_headers' => $this->headers(),
-			'request_data' => $this->data(),
-			'response_code' => $code,
+		$this->_log[] = [
+			'request'          => $this->method().' '.$url,
+			'request_made_at'  => date('Y-m-d H:i:s'),
+			'request_headers'  => $this->headers(),
+			'request_data'     => $this->data(),
+			'response_code'    => $code,
 			'response_headers' => $this->response_headers,
-			'response_data' => $response->data,
-			'response_body' => $body,
-		);
+			'response_data'    => $response->data,
+			'response_body'    => $body,
+		];
 
 		return $response;
 	}
