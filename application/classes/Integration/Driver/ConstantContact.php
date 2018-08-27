@@ -80,7 +80,7 @@ class Integration_Driver_ConstantContact extends Integration_Driver implements I
 			}
 			elseif ($r->code == 500)
 			{
-				throw new Integration_Exception(INT_E_FREQUENT_TEMPORARY_ERR);
+				throw new Integration_Exception(INT_E_TEMPORARY_ERROR);
 			}
 			else
 			{
@@ -377,7 +377,7 @@ class Integration_Driver_ConstantContact extends Integration_Driver implements I
 			}
 			elseif ($r->code == 500)
 			{
-				throw new Integration_Exception(INT_E_FREQUENT_TEMPORARY_ERR);
+				throw new Integration_Exception(INT_E_TEMPORARY_ERROR);
 			}
 			else
 			{
@@ -435,7 +435,7 @@ class Integration_Driver_ConstantContact extends Integration_Driver implements I
 			}
 			elseif ($r->code == 500)
 			{
-				throw new Integration_Exception(INT_E_FREQUENT_TEMPORARY_ERR);
+				throw new Integration_Exception(INT_E_TEMPORARY_ERROR);
 			}
 			else
 			{
