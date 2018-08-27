@@ -302,11 +302,11 @@ class Integration_Driver_MailerLite extends Integration_Driver implements Integr
 		}
 		elseif ($r->code == 500)
 		{
-			throw new Integration_Exception(INT_E_FREQUENT_TEMPORARY_ERR);
+			throw new Integration_Exception(INT_E_TEMPORARY_ERROR);
 		}
 		elseif ($r->code == 508)
 		{
-			throw new Integration_Exception(INT_E_FREQUENT_TEMPORARY_ERR);
+			throw new Integration_Exception(INT_E_TEMPORARY_ERROR);
 		}
 
 		return TRUE;
