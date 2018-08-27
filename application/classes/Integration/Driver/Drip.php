@@ -1071,7 +1071,7 @@ class Integration_Driver_Drip extends Integration_OauthDriver implements Integra
 	public function record_event($email, $params)
 	{
 		$event = Arr::get($params, 'event');
-		if ( ! isset($event) OR empty($event))
+		if ( ! isset($event))
 		{
 			throw new Integration_Exception(INT_E_WRONG_PARAMS);
 		}
