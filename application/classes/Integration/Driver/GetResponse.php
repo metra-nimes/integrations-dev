@@ -12,9 +12,10 @@ class Integration_Driver_GetResponse extends Integration_Driver implements Integ
 	protected static $company_address = 'Arkońska 6/A3, 80-387 Gdańsk, Poland';
 	protected static $company_url = 'https://www.getresponse.com/';
 
-	protected static $email_cache = array(
+	protected static $email_cache = [
 		// 'email' => id
-	);
+	];
+
 	/**
 	 * Get endpoint URL for API calls
 	 *
@@ -30,10 +31,10 @@ class Integration_Driver_GetResponse extends Integration_Driver implements Integ
 	public function validate_params(array $params)
 	{
 		$campaign = Arr::get($params, 'campaign', '');
-		$available_campaigns = Arr::get($this->meta, 'campaigns', array());
+		$available_campaigns = Arr::get($this->meta, 'campaigns', []);
 		if ( ! is_array($available_campaigns))
 		{
-			$available_campaigns = array();
+			$available_campaigns = [];
 		}
 		if ( ! isset($available_campaigns[$campaign]))
 		{
@@ -88,12 +89,12 @@ class Integration_Driver_GetResponse extends Integration_Driver implements Integ
 	 */
 	public function fetch_meta()
 	{
-		$this->meta = array(
-			'campaigns' => array(),
-			'tags' => array(),
-			'fields' => array(),
-			'fields_data' => array()
-		);
+		$this->meta = [
+			'campaigns' => [],
+			'tags' => [],
+			'fields' => [],
+			'fields_data' => []
+		];
 
 		$meta_actions = [
 			'campaigns' => 'campaigns',
@@ -224,14 +225,14 @@ class Integration_Driver_GetResponse extends Integration_Driver implements Integ
 
 	public static function describe_data_rules()
 	{
-		return array(
-			'text' => array(
-				array('max_length', array(':field', 32), 'The maximum length of custom field\'s name should not exceed 32 characters.'),
-			),
-			'hidden' => array(
-				array('max_length', array(':field', 32), 'The maximum length of hidden field\'s name should not exceed 32 characters.'),
-			),
-		);
+		return [
+			'text' => [
+				['max_length', [':field', 32], 'The maximum length of custom field\'s name should not exceed 32 characters.'],
+			],
+			'hidden' => [
+				['max_length', [':field', 32], 'The maximum length of hidden field\'s name should not exceed 32 characters.'],
+			],
+		];
 	}
 
 	/**
@@ -244,28 +245,28 @@ class Integration_Driver_GetResponse extends Integration_Driver implements Integ
 	 */
 	public function translate_subscriber_data_to_int_data(array $subscriber_data, $create_missing_fields = FALSE)
 	{
-		$person_meta = Arr::get($subscriber_data, 'meta', array());
+		$person_meta = Arr::get($subscriber_data, 'meta', []);
 		unset($subscriber_data['meta']);
 		$cache_refreshed = FALSE;
-		$int_data = array(
+		$int_data = [
 			'customFieldValues' => [],
-		);
+		];
 		$fields = $this->get_fields(TRUE);
 
 		$name = NULL;
 		$first_name = NULL;
 		$last_name = NULL;
 
-		$reserved_names = array('name', 'email', 'firstname', 'first_name', 'lastname', 'last_name', 'twitter', 'facebook', 'buzz', 'myspace', 'linkedin', 'digg', 'googleplus', 'pinterest', 'responder', 'campaign', 'change');
+		$reserved_names = ['name', 'email', 'firstname', 'first_name', 'lastname', 'last_name', 'twitter', 'facebook', 'buzz', 'myspace', 'linkedin', 'digg', 'googleplus', 'pinterest', 'responder', 'campaign', 'change'];
 
-		$temp_subscriber_data = array_merge($subscriber_data,$person_meta);
+		$temp_subscriber_data = array_merge($subscriber_data, $person_meta);
 
 		if (empty($temp_subscriber_data))
 			return NULL;
 
-		if (array_key_exists('name',$temp_subscriber_data) AND ! empty($temp_subscriber_data['name']))
+		if (array_key_exists('name', $temp_subscriber_data) AND ! empty($temp_subscriber_data['name']))
 		{
-			$full_name_arr = explode(' ',$temp_subscriber_data['name'],2);
+			$full_name_arr = explode(' ', $temp_subscriber_data['name'], 2);
 			$full_name_count = count($full_name_arr);
 
 			if ($full_name_count > 1)
@@ -287,23 +288,23 @@ class Integration_Driver_GetResponse extends Integration_Driver implements Integ
 			}
 			else
 			{
-				if (in_array($field_name,$reserved_names))
+				if (in_array($field_name, $reserved_names))
 				{
 					preg_match("/(.*?)(\d+)?$/", $field_name, $matches);
 					$field_name = $matches[0].(intval($matches[1]) + 1);
 				}
 
-				$field_key = array_search($field_name,$fields);
+				$field_key = array_search($field_name, $fields);
 
 				if ( ! $field_key)
 				{
 					$field_key = $this->create_field($field_name);
 				}
 
-				$int_data['customFieldValues'][$field_key] = array(
+				$int_data['customFieldValues'][$field_key] = [
 					'customFieldId' => $field_key,
 					'value' => $this->format_field_value($field_key, $field_value)
-				);
+				];
 			}
 		}
 
@@ -318,12 +319,12 @@ class Integration_Driver_GetResponse extends Integration_Driver implements Integ
 	 */
 	public function translate_int_data_to_subscriber_data(array $int_data)
 	{
-		$subscriber_data = array(
-			'meta' => array(),
-		);
+		$subscriber_data = [
+			'meta' => [],
+		];
 		$fields_array = $this->get_fields();
 
-		foreach (Arr::get($int_data, 'customFieldValues', array()) as $custom_field_array)
+		foreach (Arr::get($int_data, 'customFieldValues', []) as $custom_field_array)
 		{
 			$field_id = Arr::get($custom_field_array, 'customFieldId', NULL);
 			$value = Arr::path($custom_field_array, 'value.0');
@@ -352,7 +353,7 @@ class Integration_Driver_GetResponse extends Integration_Driver implements Integ
 
 		foreach ($this->standard_merge_fields as $key => $field)
 		{
-			if ( !empty(Arr::get($int_data, $field, NULL)))
+			if ( ! empty(Arr::get($int_data, $field, NULL)))
 			{
 				$subscriber_data[$key] = Arr::get($int_data, $field, NULL);
 			}
@@ -366,14 +367,14 @@ class Integration_Driver_GetResponse extends Integration_Driver implements Integ
 
 		foreach ($int_fields as $int_key => $int_value)
 		{
-			$int_field = Arr::path($int_data, $int_value,NULL);
-			if ($int_field )
+			$int_field = Arr::path($int_data, $int_value, NULL);
+			if ($int_field)
 			{
 				if ($int_key == 'tags')
 				{
 					$int_field = array_map(function ($item) {
-						return array('tagId' => $item['tagId']);
-					},$int_field);
+						return ['tagId' => $item['tagId']];
+					}, $int_field);
 				}
 				Arr::set_path($subscriber_data, '$integration.'.$int_key, $int_field);
 			}
@@ -442,12 +443,12 @@ class Integration_Driver_GetResponse extends Integration_Driver implements Integ
 			->header('Content-Type', 'application/json')
 			->header('X-Auth-Token', 'api-key '.$api_key)
 			->url($this->get_endpoint().'/contacts')
-			->data(array(
-				'query' => array(
+			->data([
+				'query' => [
 					'email' => $email,
-				),
+				],
 				'additionalFlags' => 'exactMatch',
-			))
+			])
 			->log_to($this->requests_log)
 			->execute();
 
@@ -469,7 +470,7 @@ class Integration_Driver_GetResponse extends Integration_Driver implements Integ
 	 */
 	public function get_fields($force_fetch = FALSE)
 	{
-		$fields = Arr::get($this->meta, 'fields', array());
+		$fields = Arr::get($this->meta, 'fields', []);
 		if (empty($fields) OR $force_fetch)
 		{
 			$api_key = Arr::path($this->credentials, 'api_key');
@@ -498,8 +499,8 @@ class Integration_Driver_GetResponse extends Integration_Driver implements Integ
 				}
 			}
 
-			$this->meta['fields'] = array();
-			$this->meta['fields_data'] = array();
+			$this->meta['fields'] = [];
+			$this->meta['fields_data'] = [];
 			foreach ($r->data as $item)
 			{
 				$field_id = Arr::get($item, 'customFieldId', NULL);
@@ -511,7 +512,7 @@ class Integration_Driver_GetResponse extends Integration_Driver implements Integ
 			}
 		}
 
-		return $this->get_meta('fields', array());
+		return $this->get_meta('fields', []);
 	}
 
 	/**
@@ -537,12 +538,12 @@ class Integration_Driver_GetResponse extends Integration_Driver implements Integ
 			->header('Accept-Type', 'application/json')
 			->header('Content-Type', 'application/json')
 			->header('X-Auth-Token', 'api-key '.$api_key)
-			->data(array(
+			->data([
 				'name' => $name,
 				'type' => 'text',
 				'hidden' => 'true',
-				'values' => array(),
-			))
+				'values' => [],
+			])
 			->log_to($this->requests_log)
 			->execute();
 
@@ -581,7 +582,7 @@ class Integration_Driver_GetResponse extends Integration_Driver implements Integ
 	 */
 	protected function format_field_value($field_id, $value)
 	{
-		$field_settings = Arr::path($this->meta, 'fields_data.'.$field_id, array());
+		$field_settings = Arr::path($this->meta, 'fields_data.'.$field_id, []);
 
 		switch (Arr::get($field_settings, 'format'))
 		{
@@ -622,7 +623,7 @@ class Integration_Driver_GetResponse extends Integration_Driver implements Integ
 				break;
 		}
 
-		return array($value);
+		return [$value];
 	}
 
 	/**
@@ -640,10 +641,10 @@ class Integration_Driver_GetResponse extends Integration_Driver implements Integ
 	/**
 	 * @var array Merge fields tag names for Convertful person fields
 	 */
-	protected $standard_merge_fields = array(
+	protected $standard_merge_fields = [
 		'first_name' => 'name',
 		'ip' => 'ipAddress',
-	);
+	];
 
 	/**
 	 * Get campaign contacts
@@ -663,16 +664,16 @@ class Integration_Driver_GetResponse extends Integration_Driver implements Integ
 			->header('Accept-Type', 'application/json')
 			->header('Content-Type', 'application/json')
 			->header('X-Auth-Token', 'api-key '.$api_key)
-			->curl(array(
+			->curl([
 				CURLOPT_CONNECTTIMEOUT_MS => 15000,
 				CURLOPT_TIMEOUT_MS => 30000,
-			))
+			])
 			->url($this->get_endpoint().'/campaigns/'.$campaign_id.'/contacts')
-			->data(array(
-				'query' => array(
+			->data([
+				'query' => [
 					'email' => $email,
-				),
-			))
+				],
+			])
 			->log_to($this->requests_log)
 			->execute();
 
@@ -702,7 +703,7 @@ class Integration_Driver_GetResponse extends Integration_Driver implements Integ
 	 * @param array $subscriber_data
 	 * @throws Integration_Exception
 	 */
-	public function add_campaign_contact($email, $params, $subscriber_data = array())
+	public function add_campaign_contact($email, $params, $subscriber_data = [])
 	{
 		$current_campaign = Arr::get($params, 'campaign_id');
 		if ( ! isset($current_campaign) OR empty($current_campaign))
@@ -729,9 +730,9 @@ class Integration_Driver_GetResponse extends Integration_Driver implements Integ
 		$int_data = $this->translate_subscriber_data_to_int_data($subscriber_data, TRUE);
 
 		$int_data['email'] = $email;
-		$int_data['campaign'] = array(
+		$int_data['campaign'] = [
 			'campaignId' => $current_campaign,
-		);
+		];
 
 		// Add/Update contact to campaign
 		// https://apidocs.getresponse.com/v3/resources/contacts#contacts.create
@@ -741,10 +742,10 @@ class Integration_Driver_GetResponse extends Integration_Driver implements Integ
 			->header('Accept-Type', 'application/json')
 			->header('Content-Type', 'application/json')
 			->header('X-Auth-Token', 'api-key '.$api_key)
-			->curl(array(
+			->curl([
 				CURLOPT_CONNECTTIMEOUT_MS => 15000,
 				CURLOPT_TIMEOUT_MS => 30000,
-			))
+			])
 			->url($this->get_endpoint().'/contacts/'.$subscriber_id)
 			->data($int_data)
 			->log_to($this->requests_log)
@@ -792,7 +793,7 @@ class Integration_Driver_GetResponse extends Integration_Driver implements Integ
 			throw new Integration_Exception(INT_E_WRONG_PARAMS);
 		}
 
-		$subscriber = $this->get_campaign_contact($current_campaign,$email);
+		$subscriber = $this->get_campaign_contact($current_campaign, $email);
 		if ($subscriber === NULL)
 		{
 			return;
@@ -816,14 +817,14 @@ class Integration_Driver_GetResponse extends Integration_Driver implements Integ
 			->header('Accept-Type', 'application/json')
 			->header('Content-Type', 'application/json')
 			->header('X-Auth-Token', 'api-key '.$api_key)
-			->curl(array(
+			->curl([
 				CURLOPT_CONNECTTIMEOUT_MS => 15000,
 				CURLOPT_TIMEOUT_MS => 30000,
-			))
+			])
 			->url($this->get_endpoint().'/contacts/'.$subscriber_id)
-			->data(array(
+			->data([
 				'messageId' => $current_campaign
-			))
+			])
 			->log_to($this->requests_log)
 			->execute();
 
@@ -875,9 +876,9 @@ class Integration_Driver_GetResponse extends Integration_Driver implements Integ
 
 		$api_key = Arr::path($this->credentials, 'api_key');
 
-		$int_data['tags'] = array(
+		$int_data['tags'] = [
 			'tagId' => $current_tag,
-		);
+		];
 
 		// Add new tag to a contact
 		// https://apidocs.getresponse.com/v3/resources/contacts#contacts.upsert.tags
@@ -886,10 +887,10 @@ class Integration_Driver_GetResponse extends Integration_Driver implements Integ
 			->header('Accept-Type', 'application/json')
 			->header('Content-Type', 'application/json')
 			->header('X-Auth-Token', 'api-key '.$api_key)
-			->curl(array(
+			->curl([
 				CURLOPT_CONNECTTIMEOUT_MS => 15000,
 				CURLOPT_TIMEOUT_MS => 30000,
-			))
+			])
 			->url($this->get_endpoint().'/contacts/'.$subscriber_id.'/tags')
 			->data($int_data)
 			->log_to($this->requests_log)
@@ -940,7 +941,7 @@ class Integration_Driver_GetResponse extends Integration_Driver implements Integ
 				throw new Integration_Exception(INT_E_WRONG_REQUEST);
 			}
 
-			$tags = Arr::path($subscriber, '$integration.tags',[]);
+			$tags = Arr::path($subscriber, '$integration.tags', []);
 			$removed_tag_key = array_search($current_tag, array_column($tags, 'tagId'));
 
 			if ($removed_tag_key === FALSE)
@@ -964,10 +965,10 @@ class Integration_Driver_GetResponse extends Integration_Driver implements Integ
 			->header('Accept-Type', 'application/json')
 			->header('Content-Type', 'application/json')
 			->header('X-Auth-Token', 'api-key '.$api_key)
-			->curl(array(
+			->curl([
 				CURLOPT_CONNECTTIMEOUT_MS => 15000,
 				CURLOPT_TIMEOUT_MS => 30000,
-			))
+			])
 			->url($this->get_endpoint().'/contacts/'.$subscriber_id)
 			->data($int_data)
 			->log_to($this->requests_log)
@@ -1031,10 +1032,10 @@ class Integration_Driver_GetResponse extends Integration_Driver implements Integ
 			->header('Accept-Type', 'application/json')
 			->header('Content-Type', 'application/json')
 			->header('X-Auth-Token', 'api-key '.$api_key)
-			->curl(array(
+			->curl([
 				CURLOPT_CONNECTTIMEOUT_MS => 15000,
 				CURLOPT_TIMEOUT_MS => 30000,
-			))
+			])
 			->url($this->get_endpoint().'/contacts/'.$subscriber_id)
 			->data($int_data)
 			->log_to($this->requests_log)
