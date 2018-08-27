@@ -409,7 +409,7 @@ jQuery(function($){
 					automation_name: automationName
 				};
 
-			$.get(url, data)
+			$.post(url, data)
 				.done(function(response){
 					try {
 						if (typeof response !== 'object')

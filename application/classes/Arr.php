@@ -318,6 +318,26 @@ class Arr extends Kohana_Arr {
 		return $aReturn;
 	}
 
+	/**
+	 *  Recursive Sorting
+	 *
+	 * @param  array $array
+	 * @return bool
+	 */
+	public static function recursive_ksort(&$array, $sort_flags = SORT_REGULAR)
+	{
+		if ( ! is_array($array))
+		{
+			return false;
+		}
+		ksort($array, $sort_flags);
+		foreach ($array as &$arr)
+		{
+			static::recursive_ksort($arr, $sort_flags);
+		}
+		return true;
+	}
+
 	public static function delete_path( & $array, $path, $delimiter = NULL)
 	{
 		if ( ! $delimiter)

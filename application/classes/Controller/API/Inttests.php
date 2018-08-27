@@ -57,15 +57,6 @@ class Controller_API_Inttests extends Controller_API {
 			$this->output['meta'] = $driver->get_meta();
 			$this->output['credentials'] = $driver->get_credentials();
 
-			$params = $driver->describe_params_fields();
-			if (! empty($params))
-			{
-				$this->output['params_fields'] = View::factory('cof/fieldset', array(
-					'fields' => $params,
-					'values' => array(),
-				))->render();
-			}
-
 			$automations = $driver->describe_automations();
 			if (! empty($automations))
 			{
@@ -95,20 +86,31 @@ class Controller_API_Inttests extends Controller_API {
 	}
 
 	/**
-	 * GET /api/inttests/describe_automation
+	 * GET|POST /api/inttests/describe_automation
 	 * @get string automation_name Integration driver name
 	 */
 	public function action_describe_automation()
 	{
-		$driver_name = $this->request->query('driver_name');
-		$credentials = $this->request->query('credentials');
-		$meta = $this->request->query('meta');
+		if ($this->request->method() === 'POST')
+		{
+			$driver_name = $this->request->post('driver_name');
+			$credentials = $this->request->post('credentials');
+			$meta = $this->request->post('meta');
+			$automation_name = $this->request->post('automation_name');
+		}
+		else
+		{
+			$driver_name = $this->request->query('driver_name');
+			$credentials = $this->request->query('credentials');
+			$meta = $this->request->query('meta');
+			$automation_name = $this->request->query('automation_name');
+		}
+
 
 		$driver = Integration_Driver::factory($driver_name)
 			->set_credentials($credentials, TRUE)
 			->set_meta(json_decode($meta, true));
 
-		$automation_name = $this->request->query('automation_name');
 		$automations = $driver->describe_automations();
 		if ( ! isset($automations[$automation_name]))
 		{
@@ -264,10 +266,6 @@ class Controller_API_Inttests extends Controller_API {
 			$this->_changed['meta'] = $driver->get_meta();
 		}
 
-		if ( ! is_null($credentials) AND $driver->get_params() !== $params)
-		{
-			$this->_changed['params'] = $driver->get_params();
-		}
 	}
 
 }
