@@ -158,7 +158,7 @@ class Integration_Driver_Drip extends Integration_OauthDriver implements Integra
 			}
 			elseif ($r->code == 500)
 			{
-				throw new Integration_Exception(INT_E_FREQUENT_TEMPORARY_ERR);
+				throw new Integration_Exception(INT_E_TEMPORARY_ERROR);
 			}
 			else
 			{
@@ -204,7 +204,7 @@ class Integration_Driver_Drip extends Integration_OauthDriver implements Integra
 				}
 				elseif ($r->code == 500)
 				{
-					throw new Integration_Exception(INT_E_TOO_FREQUENT_REQUESTS);
+					throw new Integration_Exception(INT_E_TEMPORARY_ERROR);
 				}
 				else
 				{
