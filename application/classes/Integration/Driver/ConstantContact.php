@@ -59,9 +59,9 @@ class Integration_Driver_ConstantContact extends Integration_Driver implements I
 	public function fetch_meta()
 	{
 		$oauth_token = $this->get_credentials('oauth.access_token', '');
-		$this->meta = array(
-			'lists' => array(),
-		);
+		$this->meta = [
+			'lists' => [],
+		];
 
 		// Fetch contact lists
 		// https://developer.constantcontact.com/docs/contact-list-api/contactlist-collection.html
@@ -154,14 +154,14 @@ class Integration_Driver_ConstantContact extends Integration_Driver implements I
 
 	public static function describe_data_rules()
 	{
-		return array(
-			'text' => array(
-				array('max_length', array(':value', 50), 'The maximum length of field\'s content should not exceed 50 characters.'),
-			),
-			'hidden' => array(
-				array('max_length', array(':value', 50), 'The maximum length of field\'s content should not exceed 50 characters.'),
-			),
-		);
+		return [
+			'text' => [
+				['max_length', [':value', 50], 'The maximum length of field\'s content should not exceed 50 characters.'],
+			],
+			'hidden' => [
+				['max_length', [':value', 50], 'The maximum length of field\'s content should not exceed 50 characters.'],
+			],
+		];
 	}
 
 	/**
@@ -178,7 +178,7 @@ class Integration_Driver_ConstantContact extends Integration_Driver implements I
 			$field_name = 'custom_field_'.$index;
 			if (empty($this->meta['custom_field_label'][$field_name.'_label']))
 			{
-				$this->meta['custom_field_label'][$field_name.'_label']= $label;
+				$this->meta['custom_field_label'][$field_name.'_label'] = $label;
 
 				return $field_name;
 			}
@@ -194,7 +194,7 @@ class Integration_Driver_ConstantContact extends Integration_Driver implements I
 	 */
 	public function get_custom_fields()
 	{
-		$custom_fields = array();
+		$custom_fields = [];
 		if ( ! empty($this->meta['custom_field_label']))
 		{
 			for ($index = 1; $index < 16; $index++)
@@ -215,22 +215,22 @@ class Integration_Driver_ConstantContact extends Integration_Driver implements I
 	/**
 	 * @var array ConstantContact standard fields names for Convertful person fields
 	 */
-	protected $standard_fields = array(
+	protected $standard_fields = [
 		'first_name' => 'first_name',
 		'last_name' => 'last_name',
 		'phone' => 'cell_phone',
 		'company' => 'company_name',
-	);
+	];
 
 	public function translate_subscriber_data_to_int_data(array $subscriber_data, $create_missing_fields = FALSE)
 	{
 		// Grabbing custom fields titles if they present
 		$custom_fields = $this->get_custom_fields();
 
-		$person_meta = Arr::get($subscriber_data, 'meta', array());
+		$person_meta = Arr::get($subscriber_data, 'meta', []);
 		unset($subscriber_data['meta']);
 
-		$int_data = array();
+		$int_data = [];
 		foreach ($subscriber_data as $field_type => $value)
 		{
 			if ($field_type === 'name')
@@ -267,12 +267,12 @@ class Integration_Driver_ConstantContact extends Integration_Driver implements I
 			}
 			if ( ! isset($int_data['custom_fields']))
 			{
-				$int_data['custom_fields'] = array();
+				$int_data['custom_fields'] = [];
 			}
-			$int_data['custom_fields'][] = array(
+			$int_data['custom_fields'][] = [
 				'name' => $field_name,
 				'value' => mb_substr($value, 0, 50),
-			);
+			];
 		}
 
 		// Trying to use standard first_name / last_name when name is defined
@@ -291,9 +291,9 @@ class Integration_Driver_ConstantContact extends Integration_Driver implements I
 
 	public function translate_int_data_to_subscriber_data(array $int_data)
 	{
-		$subscriber_data = array(
-			'meta' => array(),
-		);
+		$subscriber_data = [
+			'meta' => [],
+		];
 
 		$custom_fields = $this->get_custom_fields();
 
@@ -305,14 +305,14 @@ class Integration_Driver_ConstantContact extends Integration_Driver implements I
 			}
 		}
 
-		foreach (Arr::get($int_data, 'custom_fields', array()) as $field)
+		foreach (Arr::get($int_data, 'custom_fields', []) as $field)
 		{
 			// ConstantContact outputs custom fields in different format than inputs them :(
 			$field['name'] = str_replace('CustomField', 'custom_field_', $field['name']);
 			if ( ! empty($field['value']))
 			{
 				$field_label = Arr::get($custom_fields, $field['name'], $field['label']);
-				if (in_array($field_label, array('Site', 'Name')))
+				if (in_array($field_label, ['Site', 'Name']))
 				{
 					// Standard convertful fields
 					$field_name = strtolower($field_label);
@@ -337,10 +337,10 @@ class Integration_Driver_ConstantContact extends Integration_Driver implements I
 			Arr::set_path($subscriber_data, '$integration.lists', $lists);
 		}
 		// Trying to use standard first_name / last_name when name is defined
-/*		if ( ! isset($subscriber_data['name']) AND ( ! empty($subscriber_data['first_name']) OR ! empty($subscriber_data['last_name'])))
-		{
-			$subscriber_data['name'] = trim($subscriber_data['first_name'].' '.$subscriber_data['last_name']);
-		}*/
+		/*		if ( ! isset($subscriber_data['name']) AND ( ! empty($subscriber_data['first_name']) OR ! empty($subscriber_data['last_name'])))
+				{
+					$subscriber_data['name'] = trim($subscriber_data['first_name'].' '.$subscriber_data['last_name']);
+				}*/
 
 		if (empty($subscriber_data['meta']))
 		{
@@ -353,7 +353,7 @@ class Integration_Driver_ConstantContact extends Integration_Driver implements I
 	/**
 	 * @var array Cache of a single contact to prevent additional request (stored as email => contact)
 	 */
-	protected $contact_cache = array();
+	protected $contact_cache = [];
 
 	public function get_subscriber($email)
 	{
@@ -363,10 +363,10 @@ class Integration_Driver_ConstantContact extends Integration_Driver implements I
 			->method('GET')
 			->url($this->get_endpoint().'/contacts?api_key='.urlencode($this->get_key()))
 			->header('Authorization', 'Bearer '.$this->get_credentials('oauth.access_token', ''))
-			->data(array(
+			->data([
 				'email' => $email,
 				'status' => 'ALL',
-			))
+			])
 			->log_to($this->requests_log)
 			->execute();
 		if ( ! $r->is_successful())
@@ -385,7 +385,7 @@ class Integration_Driver_ConstantContact extends Integration_Driver implements I
 			}
 		}
 
-		$results = $r->get('results', array());
+		$results = $r->get('results', []);
 		// Checking if the contact exists at all
 		if (empty($results))
 		{
@@ -403,7 +403,7 @@ class Integration_Driver_ConstantContact extends Integration_Driver implements I
 	 * @param array $int_data
 	 * @throws Integration_Exception
 	 */
-	protected function subscriber_crud($method, $subscriber_id, $int_data = array())
+	protected function subscriber_crud($method, $subscriber_id, $int_data = [])
 	{
 		$action_by = ($method != 'DELETE') ? '&action_by=ACTION_BY_VISITOR' : '';
 
@@ -431,7 +431,7 @@ class Integration_Driver_ConstantContact extends Integration_Driver implements I
 			}
 			elseif ($r->code == 400 AND strpos($r->path('0.error_message'), 'Only one note is allowed') !== FALSE)
 			{
-				throw new Integration_Exception(INT_E_WRONG_PARAMS,'email',$r->path('0.error_message'));
+				throw new Integration_Exception(INT_E_WRONG_PARAMS, 'email', $r->path('0.error_message'));
 			}
 			elseif ($r->code == 500)
 			{
@@ -450,7 +450,7 @@ class Integration_Driver_ConstantContact extends Integration_Driver implements I
 	 * @param array $subscriber_data
 	 * @throws Integration_Exception
 	 */
-	public function add_list_contact($email, $params, $subscriber_data = array())
+	public function add_list_contact($email, $params, $subscriber_data = [])
 	{
 		$current_list = Arr::get($params, 'list_id');
 
@@ -461,17 +461,17 @@ class Integration_Driver_ConstantContact extends Integration_Driver implements I
 
 		$int_data = $this->translate_subscriber_data_to_int_data($subscriber_data, TRUE);
 
-		$int_data['email_addresses'] = array(
-			array(
+		$int_data['email_addresses'] = [
+			[
 				'email_address' => $email,
-			),
-		);
+			],
+		];
 
-		$int_data['lists'] = array(
-			array(
+		$int_data['lists'] = [
+			[
 				'id' => $current_list,
-			),
-		);
+			],
+		];
 
 		$subscriber = $this->get_subscriber($email);
 
@@ -483,11 +483,11 @@ class Integration_Driver_ConstantContact extends Integration_Driver implements I
 		else
 		{
 			$method = 'PUT';
-			$subscriber_id  = Arr::path($subscriber, '$integration.id');
-			$int_data['lists'] = array_merge($int_data['lists'],Arr::path($subscriber, '$integration.lists',[]));
+			$subscriber_id = Arr::path($subscriber, '$integration.id');
+			$int_data['lists'] = array_merge($int_data['lists'], Arr::path($subscriber, '$integration.lists', []));
 		}
 
-		$this->subscriber_crud($method,$subscriber_id,$int_data);
+		$this->subscriber_crud($method, $subscriber_id, $int_data);
 	}
 
 	/**
@@ -513,16 +513,15 @@ class Integration_Driver_ConstantContact extends Integration_Driver implements I
 		}
 		else
 		{
-			$subscriber_id  = Arr::path($subscriber, '$integration.id');
-			$int_data['email_addresses'] = array(
-				array(
+			$subscriber_id = Arr::path($subscriber, '$integration.id');
+			$int_data['email_addresses'] = [
+				[
 					'email_address' => $email,
-				),
-			);
-			$int_data['lists'] = array_values(array_filter(Arr::path($subscriber, '$integration.lists',[]), function($item) use (&$current_list)
-				{
-					return $item['id'] != $current_list;
-				}
+				],
+			];
+			$int_data['lists'] = array_values(array_filter(Arr::path($subscriber, '$integration.lists', []), function ($item) use (&$current_list) {
+				return $item['id'] != $current_list;
+			}
 			));
 
 			if (empty($int_data['lists']))
@@ -536,7 +535,7 @@ class Integration_Driver_ConstantContact extends Integration_Driver implements I
 			}
 
 
-			$this->subscriber_crud($method,$subscriber_id,$int_data);
+			$this->subscriber_crud($method, $subscriber_id, $int_data);
 		}
 	}
 
@@ -563,21 +562,21 @@ class Integration_Driver_ConstantContact extends Integration_Driver implements I
 		}
 		else
 		{
-			$subscriber_id  = Arr::path($subscriber, '$integration.id');
+			$subscriber_id = Arr::path($subscriber, '$integration.id');
 			$method = 'PUT';
-			$int_data['email_addresses'] = array(
-				array(
+			$int_data['email_addresses'] = [
+				[
 					'email_address' => $email,
-				),
-			);
-			$int_data['lists'] = Arr::path($subscriber, '$integration.lists',[]);
-			$int_data['notes'] = array(
-				array(
+				],
+			];
+			$int_data['lists'] = Arr::path($subscriber, '$integration.lists', []);
+			$int_data['notes'] = [
+				[
 					'note' => $text
-				),
-			);
+				],
+			];
 
-			$this->subscriber_crud($method,$subscriber_id,$int_data);
+			$this->subscriber_crud($method, $subscriber_id, $int_data);
 		}
 	}
 }
