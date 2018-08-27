@@ -839,7 +839,7 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 			}
 			elseif ($r->code === 508)
 			{
-				throw new Integration_Exception(INT_E_FREQUENT_TEMPORARY_ERR);
+				throw new Integration_Exception(INT_E_TEMPORARY_ERROR);
 			}
 			// Not 100% sure about this part: maybe result_code could be 0 for some other cases
 			throw new Integration_Exception(INT_E_WRONG_REQUEST);
@@ -903,7 +903,7 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 			}
 			elseif ($r->code === 508)
 			{
-				throw new Integration_Exception(INT_E_FREQUENT_TEMPORARY_ERR);
+				throw new Integration_Exception(INT_E_TEMPORARY_ERROR);
 			}
 
 			throw new Integration_Exception(INT_E_WRONG_REQUEST);
@@ -961,7 +961,7 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 			}
 			elseif ($r->code === 508)
 			{
-				throw new Integration_Exception(INT_E_FREQUENT_TEMPORARY_ERR);
+				throw new Integration_Exception(INT_E_TEMPORARY_ERROR);
 			}
 			throw new Integration_Exception(INT_E_WRONG_REQUEST);
 		}
@@ -1007,7 +1007,7 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 			}
 			elseif ($r->code === 508)
 			{
-				throw new Integration_Exception(INT_E_FREQUENT_TEMPORARY_ERR);
+				throw new Integration_Exception(INT_E_TEMPORARY_ERROR);
 			}
 			throw new Integration_Exception(INT_E_WRONG_REQUEST);
 		}
@@ -1062,7 +1062,7 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 			}
 			elseif ($r->code === 508)
 			{
-				throw new Integration_Exception(INT_E_FREQUENT_TEMPORARY_ERR);
+				throw new Integration_Exception(INT_E_TEMPORARY_ERROR);
 			}
 			throw new Integration_Exception(INT_E_WRONG_REQUEST);
 		}
@@ -1121,7 +1121,7 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 			}
 			elseif ($r->code === 508)
 			{
-				throw new Integration_Exception(INT_E_FREQUENT_TEMPORARY_ERR);
+				throw new Integration_Exception(INT_E_TEMPORARY_ERROR);
 			}
 			elseif (strpos($r->get('result_message'), 'The provided stage does not exist or is not part of the pipeline provided') !== FALSE)
 			{
@@ -1180,7 +1180,7 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 			}
 			elseif ($r->code === 508)
 			{
-				throw new Integration_Exception(INT_E_FREQUENT_TEMPORARY_ERR);
+				throw new Integration_Exception(INT_E_TEMPORARY_ERROR);
 			}
 			throw new Integration_Exception(INT_E_WRONG_REQUEST);
 		}
@@ -1244,7 +1244,7 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 			}
 			elseif ($r->code === 508)
 			{
-				throw new Integration_Exception(INT_E_FREQUENT_TEMPORARY_ERR);
+				throw new Integration_Exception(INT_E_TEMPORARY_ERROR);
 			}
 			throw new Integration_Exception(INT_E_WRONG_REQUEST);
 		}
@@ -1295,7 +1295,7 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 			}
 			elseif ($r->code === 508)
 			{
-				throw new Integration_Exception(INT_E_FREQUENT_TEMPORARY_ERR);
+				throw new Integration_Exception(INT_E_TEMPORARY_ERROR);
 			}
 			throw new Integration_Exception(INT_E_WRONG_REQUEST);
 		}
