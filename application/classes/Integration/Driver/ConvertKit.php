@@ -14,7 +14,7 @@ class Integration_Driver_ConvertKit extends Integration_Driver implements Integr
 
 	public function describe_credentials_fields($refresh = FALSE)
 	{
-		return array(
+		return [
 			'name' => [
 				'title' => 'Account Name',
 				'type' => 'text',
@@ -44,7 +44,7 @@ class Integration_Driver_ConvertKit extends Integration_Driver implements Integr
 				'type' => 'submit',
 				'action' => 'connect',
 			],
-		);
+		];
 	}
 
 	public function get_endpoint()
@@ -76,18 +76,18 @@ class Integration_Driver_ConvertKit extends Integration_Driver implements Integr
 			$r = Integration_Request::factory()
 				->method('GET')
 				->url($this->get_endpoint().'/'.$key)
-				->data(array(
+				->data([
 					'api_key' => $this->get_credentials('api_key', ''),
-				))
+				])
 				->log_to($this->requests_log)
 				->execute();
 			if ( ! $r->is_successful())
 			{
-				$this->verify_response($r,'api_key');
+				$this->verify_response($r, 'api_key');
 				throw new Integration_Exception(INT_E_WRONG_REQUEST);
 			}
 
-			foreach ($r->get($value, array()) as $item)
+			foreach ($r->get($value, []) as $item)
 			{
 				$id = Arr::get($item, 'id', 0);
 				if ( ! is_null($id))
@@ -97,7 +97,7 @@ class Integration_Driver_ConvertKit extends Integration_Driver implements Integr
 			}
 		}
 
-		$tags = $this->get_meta('tags', array());
+		$tags = $this->get_meta('tags', []);
 		uasort($tags, function ($a, $b) {
 			return strcasecmp($a, $b);
 		});
@@ -185,28 +185,28 @@ class Integration_Driver_ConvertKit extends Integration_Driver implements Integr
 
 	public function describe_params_fields()
 	{
-		$forms = $this->get_meta('forms', array());
+		$forms = $this->get_meta('forms', []);
 
-		return array(
-			'form' => array(
+		return [
+			'form' => [
 				'title' => 'ConvertKit Form',
 				'type' => 'select',
 				'description' => NULL,
 				'options' => $forms,
 				'classes' => 'i-refreshable',
-				'rules' => array(
-					array('in_array', array(':value', array_keys($forms))),
-					array('not_empty'),
-				),
-			),
-			'tags' => array(
+				'rules' => [
+					['in_array', [':value', array_keys($forms)]],
+					['not_empty'],
+				],
+			],
+			'tags' => [
 				'title' => 'Tags to Mark with',
 				'type' => 'select2',
 				'description' => NULL,
-				'options' => $this->get_meta('tags', array()),
+				'options' => $this->get_meta('tags', []),
 				'multiple' => TRUE,
-				'rules' => array(
-					array(function ($tags) {
+				'rules' => [
+					[function ($tags) {
 						if (empty($tags))
 						{
 							return;
@@ -219,26 +219,26 @@ class Integration_Driver_ConvertKit extends Integration_Driver implements Integr
 								throw new Integration_Exception(INT_E_WRONG_PARAMS, 'tags', 'Tags should be alphanumeric');
 							}
 						}
-					}, array(':value')),
-				),
-			),
-		);
+					}, [':value']],
+				],
+			],
+		];
 	}
 
 	/**
 	 * @var array Merge fields tag names for Convertful person fields
 	 */
-	protected $standard_merge_fields = array(
+	protected $standard_merge_fields = [
 		'first_name' => 'First name',
 		'name' => 'Name',
-	);
+	];
 
 	public function translate_subscriber_data_to_int_data(array $subscriber_data, $create_missing_fields = FALSE)
 	{
-		$int_data = array();
+		$int_data = [];
 		$fields = $this->get_fields(TRUE);
 		// Reserved tags to avoid
-		$reserved_tags = array('email');
+		$reserved_tags = ['email'];
 		$add_tag_if_not_exist = function ($name) use ($create_missing_fields, &$fields, $reserved_tags, &$int_data) {
 
 			// default fields
@@ -256,7 +256,7 @@ class Integration_Driver_ConvertKit extends Integration_Driver implements Integr
 				$name = Inflector::humanize($name);
 				if (empty(preg_replace('~[^A-Z\d\_]+~i', '', $name)))
 				{
-					$name = $name. '[' . substr(base64_encode($name), 0, 8).']';
+					$name = $name.'['.substr(base64_encode($name), 0, 8).']';
 					$tag = array_search($name, $fields);
 				}
 			}
@@ -269,7 +269,7 @@ class Integration_Driver_ConvertKit extends Integration_Driver implements Integr
 					OR ! is_null(Arr::path($int_data, 'fields.'.$tag, NULL))
 				))
 			{
-				if (! empty($tag))
+				if ( ! empty($tag))
 				{
 					preg_match('~(.*?)(\d+)?$~', $tag, $matches);
 					$tag_base = $tag = $matches[0];
@@ -295,7 +295,7 @@ class Integration_Driver_ConvertKit extends Integration_Driver implements Integr
 			return strtolower($tag);
 		};
 
-		$meta = Arr::get($subscriber_data, 'meta', array());
+		$meta = Arr::get($subscriber_data, 'meta', []);
 		if (array_key_exists('meta', $subscriber_data))
 		{
 			unset($subscriber_data['meta']);
@@ -303,7 +303,7 @@ class Integration_Driver_ConvertKit extends Integration_Driver implements Integr
 
 		foreach ($subscriber_data as $name_tag => $value)
 		{
-			if (in_array($name_tag, array('name', 'first_name')))
+			if (in_array($name_tag, ['name', 'first_name']))
 			{
 				// Convert Kit store first name as key
 				Arr::set_path($int_data, $name_tag, $value);
@@ -351,10 +351,10 @@ class Integration_Driver_ConvertKit extends Integration_Driver implements Integr
 
 	public function translate_int_data_to_subscriber_data(array $int_data)
 	{
-		$subscriber_data = array(
-			'meta' => array(),
-		);
-		$int_fields = Arr::get($int_data, 'fields', array());
+		$subscriber_data = [
+			'meta' => [],
+		];
+		$int_fields = Arr::get($int_data, 'fields', []);
 		if (array_key_exists('first_name', $int_data))
 		{
 			$int_fields['first_name'] = $int_data['first_name'];
@@ -374,7 +374,7 @@ class Integration_Driver_ConvertKit extends Integration_Driver implements Integr
 			}
 
 			$field_name = Arr::get($fields_array, $field_id, $field_id);
-			if (in_array($field_name, array('first_name', 'Last name', 'Last Name', 'Phone', 'Company', 'Site')))
+			if (in_array($field_name, ['first_name', 'Last name', 'Last Name', 'Phone', 'Company', 'Site']))
 			{
 				// Standard type
 				$subscriber_data[strtolower(Inflector::underscore($field_name))] = $value;
@@ -404,29 +404,29 @@ class Integration_Driver_ConvertKit extends Integration_Driver implements Integr
 		// View subscriber by email
 		// http://developers.convertkit.com/#list-subscribers
 		$r = Integration_Request::factory()
-			->curl(array(
+			->curl([
 				CURLOPT_CONNECTTIMEOUT_MS => 15000,
 				CURLOPT_TIMEOUT_MS => 30000,
-			))
+			])
 			->method('GET')
 			->url($this->get_endpoint().'/subscribers')
-			->data(array(
+			->data([
 				'api_secret' => $this->get_credentials('api_secret'),
 				'email_address' => $email,
-			))
+			])
 			->log_to($this->requests_log)
 			->execute();
 		if ( ! $r->is_successful())
 		{
-			$this->verify_response($r,'api_secret');
+			$this->verify_response($r, 'api_secret');
 			throw new Integration_Exception(INT_E_WRONG_REQUEST);
 		}
 
-		$subscriber_data = ($r->get('total_subscribers') > 0) ? $this->translate_int_data_to_subscriber_data(current($r->get('subscribers'))) : array();
+		$subscriber_data = ($r->get('total_subscribers') > 0) ? $this->translate_int_data_to_subscriber_data(current($r->get('subscribers'))) : [];
 		return $subscriber_data;
 	}
 
-	public function add_form_subscriber($email, $params, $subscriber_data = array())
+	public function add_form_subscriber($email, $params, $subscriber_data = [])
 	{
 		$form_id = Arr::get($params, 'form_id');
 		if ( ! isset($form_id))
@@ -441,10 +441,10 @@ class Integration_Driver_ConvertKit extends Integration_Driver implements Integr
 		// Add subscriber to a form
 		// http://developers.convertkit.com/#add-subscriber-to-a-form
 		$r = Integration_Request::factory()
-			->curl(array(
+			->curl([
 				CURLOPT_CONNECTTIMEOUT_MS => 15000,
 				CURLOPT_TIMEOUT_MS => 30000,
-			))
+			])
 			->method('POST')
 			->header('Content-Type', 'application/x-www-form-urlencoded')
 			->url($this->get_endpoint().'/forms/'.$form_id.'/subscribe')
@@ -454,7 +454,7 @@ class Integration_Driver_ConvertKit extends Integration_Driver implements Integr
 
 		if ( ! $r->is_successful())
 		{
-			$this->verify_response($r,'api_key');
+			$this->verify_response($r, 'api_key');
 			throw new Integration_Exception(INT_E_WRONG_REQUEST);
 		}
 
@@ -466,11 +466,11 @@ class Integration_Driver_ConvertKit extends Integration_Driver implements Integr
 	 * @return bool
 	 * @throws Integration_Exception
 	 */
-	protected function verify_response($r,$field='')
+	protected function verify_response($r, $field = '')
 	{
 		if ($r->code == 401 OR $r->code == 403)
 		{
-			throw new Integration_Exception(INT_E_WRONG_CREDENTIALS, $field,'Account API Key is not valid');
+			throw new Integration_Exception(INT_E_WRONG_CREDENTIALS, $field, 'Account API Key is not valid');
 		}
 		elseif ($r->code == 404 && Arr::get($r->data, 'error') === 'Form not found')
 		{
@@ -497,26 +497,26 @@ class Integration_Driver_ConvertKit extends Integration_Driver implements Integr
 	 */
 	public function get_fields($force_fetch = FALSE)
 	{
-		$fields = Arr::get($this->meta, 'fields', array());
+		$fields = Arr::get($this->meta, 'fields', []);
 		if (empty($fields) OR $force_fetch)
 		{
-			$data = array();
+			$data = [];
 			$data['api_secret'] = $this->get_credentials('api_secret');
 			// List fields
 			// http://developers.convertkit.com/#list-fields
 			$r = Integration_Request::factory()
 				->method('GET')
-				->curl(array(
+				->curl([
 					CURLOPT_CONNECTTIMEOUT_MS => 15000,
 					CURLOPT_TIMEOUT_MS => 30000,
-				))
+				])
 				->url($this->get_endpoint().'/custom_fields')
 				->data($data)
 				->log_to($this->requests_log)
 				->execute();
 			if ( ! $r->is_successful())
 			{
-				$this->verify_response($r,'api_secret');
+				$this->verify_response($r, 'api_secret');
 				throw new Integration_Exception(INT_E_WRONG_REQUEST);
 			}
 
@@ -533,7 +533,7 @@ class Integration_Driver_ConvertKit extends Integration_Driver implements Integr
 			}
 		}
 
-		$fields = $this->get_meta('fields', array());
+		$fields = $this->get_meta('fields', []);
 		ksort($fields);
 
 		return $fields;
@@ -549,15 +549,15 @@ class Integration_Driver_ConvertKit extends Integration_Driver implements Integr
 	 */
 	public function create_field($name)
 	{
-		$data = array('label' => ucfirst($name), 'api_secret' => $this->get_credentials('api_secret'));
+		$data = ['label' => ucfirst($name), 'api_secret' => $this->get_credentials('api_secret')];
 		// Create field
 		// http://developers.convertkit.com/#create-field
 		$r = Integration_Request::factory()
 			->method('POST')
-			->curl(array(
+			->curl([
 				CURLOPT_CONNECTTIMEOUT_MS => 15000,
 				CURLOPT_TIMEOUT_MS => 30000,
-			))
+			])
 			->header('Content-Type', 'application/x-www-form-urlencoded')
 			->url($this->get_endpoint().'/custom_fields')
 			->log_to($this->requests_log)
@@ -609,22 +609,22 @@ class Integration_Driver_ConvertKit extends Integration_Driver implements Integr
 		// @link http://developers.convertkit.com/#tag-a-subscriber
 		$r = Integration_Request::factory()
 			->method('POST')
-			->curl(array(
+			->curl([
 				CURLOPT_CONNECTTIMEOUT_MS => 15000,
 				CURLOPT_TIMEOUT_MS => 30000,
-			))
+			])
 			->header('Content-Type', 'application/x-www-form-urlencoded')
 			->url($this->get_endpoint().'/tags/'.$tag_id.'/subscribe')
 			->log_to($this->requests_log)
-			->data(array(
+			->data([
 				'api_key' => $this->get_credentials('api_key'),
 				'email' => $email
-			))
+			])
 			->execute();
 
 		if ( ! $r->is_successful())
 		{
-			$this->verify_response($r,'api_key');
+			$this->verify_response($r, 'api_key');
 			throw new Integration_Exception(INT_E_WRONG_REQUEST);
 		}
 	}
@@ -648,27 +648,27 @@ class Integration_Driver_ConvertKit extends Integration_Driver implements Integr
 		// @link http://developers.convertkit.com/#remove-tag-from-a-subscriber-by-email
 		$r = Integration_Request::factory()
 			->method('POST')
-			->curl(array(
+			->curl([
 				CURLOPT_CONNECTTIMEOUT_MS => 15000,
 				CURLOPT_TIMEOUT_MS => 30000,
-			))
+			])
 			->header('Content-Type', 'application/x-www-form-urlencoded')
 			->url($this->get_endpoint().'/tags/'.$tag_id.'/unsubscribe')
 			->log_to($this->requests_log)
-			->data(array(
+			->data([
 				'api_secret' => $this->get_credentials('api_secret'),
 				'email' => $email
-			))
+			])
 			->execute();
 
 		if ( ! $r->is_successful())
 		{
-			$this->verify_response($r,'api_secret');
+			$this->verify_response($r, 'api_secret');
 			throw new Integration_Exception(INT_E_WRONG_REQUEST);
 		}
 	}
 
-	public function add_sequence_subscriber($email, $params, $subscriber_data = array())
+	public function add_sequence_subscriber($email, $params, $subscriber_data = [])
 	{
 		$sequence_id = Arr::get($params, 'sequence_id');
 
@@ -685,10 +685,10 @@ class Integration_Driver_ConvertKit extends Integration_Driver implements Integr
 		// @link http://developers.convertkit.com/#add-subscriber-to-a-sequence
 		$r = Integration_Request::factory()
 			->method('POST')
-			->curl(array(
+			->curl([
 				CURLOPT_CONNECTTIMEOUT_MS => 15000,
 				CURLOPT_TIMEOUT_MS => 30000,
-			))
+			])
 			->header('Content-Type', 'application/x-www-form-urlencoded')
 			->url($this->get_endpoint().'/courses/'.$sequence_id.'/subscribe')
 			->log_to($this->requests_log)
@@ -697,7 +697,7 @@ class Integration_Driver_ConvertKit extends Integration_Driver implements Integr
 
 		if ( ! $r->is_successful())
 		{
-			$this->verify_response($r,'api_key');
+			$this->verify_response($r, 'api_key');
 			throw new Integration_Exception(INT_E_WRONG_REQUEST);
 		}
 	}
