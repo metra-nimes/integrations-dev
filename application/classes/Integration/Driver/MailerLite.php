@@ -14,30 +14,30 @@ class Integration_Driver_MailerLite extends Integration_Driver implements Integr
 
 	public function describe_credentials_fields($refresh = FALSE)
 	{
-		return array(
-			'name' => array(
+		return [
+			'name' => [
 				'title' => 'Account Name',
 				'type' => 'text',
 				'description' => 'It\'s an internal value, which can be helpful to identify a specific account in future.',
-				'rules' => array(
-					array('not_empty'),
-				),
-			),
-			'api_key' => array(
+				'rules' => [
+					['not_empty'],
+				],
+			],
+			'api_key' => [
 				'title' => 'Account API Key',
 				'description' => '<a href="/docs/integrations/mailerlite/#step-2-get-your-mailerlite-api-key" target="_blank">Read where to obtain this code</a>',
 				'type' => 'key',
-				'rules' => array(
-					array('regex', array(':value', '/^[a-z0-9]{6}\S+$/i')),
-					array('not_empty'),
-				),
-			),
-			'submit' => array(
+				'rules' => [
+					['regex', [':value', '/^[a-z0-9]{6}\S+$/i']],
+					['not_empty'],
+				],
+			],
+			'submit' => [
 				'title' => 'Connect with MailerLite',
 				'action' => 'connect',
 				'type' => 'submit',
-			),
-		);
+			],
+		];
 	}
 
 	public function get_endpoint()
@@ -48,18 +48,18 @@ class Integration_Driver_MailerLite extends Integration_Driver implements Integr
 	/**
 	 * @var array Merge fields tag names for Convertful person fields
 	 */
-	protected $standard_merge_fields = array(
+	protected $standard_merge_fields = [
 		'first_name' => 'name',
 		'ip' => 'signup_ip',
 		'created' => 'signup_timestamp',
-	);
+	];
 
 	public function fetch_meta()
 	{
-		$this->meta = array(
-			'groups' => array(),
-			'fields' => array(),
-		);
+		$this->meta = [
+			'groups' => [],
+			'fields' => [],
+		];
 
 		// Get list of groups
 		// @link http://developers.mailerlite.com/reference#groups
@@ -127,11 +127,11 @@ class Integration_Driver_MailerLite extends Integration_Driver implements Integr
 
 	public function translate_subscriber_data_to_int_data(array $subscriber_data, $create_missing_fields = FALSE)
 	{
-		$int_data = array();
+		$int_data = [];
 		$fields = $this->get_fields(TRUE);
 		$cache_refreshed = FALSE;
 		// Reserved tags to avoid
-		$reserved_tags = array('email');
+		$reserved_tags = ['email'];
 		$add_tag_if_not_exist = function ($name) use ($create_missing_fields, &$fields, &$cache_refreshed, $reserved_tags, &$int_data) {
 
 			// default fields
@@ -160,7 +160,7 @@ class Integration_Driver_MailerLite extends Integration_Driver implements Integr
 			return mb_strtolower($tag);
 		};
 
-		$meta = Arr::get($subscriber_data, 'meta', array());
+		$meta = Arr::get($subscriber_data, 'meta', []);
 		if (array_key_exists('meta', $subscriber_data))
 		{
 			unset($subscriber_data['meta']);
@@ -201,11 +201,11 @@ class Integration_Driver_MailerLite extends Integration_Driver implements Integr
 
 	public function translate_int_data_to_subscriber_data(array $int_data)
 	{
-		$subscriber_data = array(
-			'meta' => array(),
-		);
+		$subscriber_data = [
+			'meta' => [],
+		];
 		$fields_array = $this->get_fields();
-		foreach (Arr::get($int_data, 'fields', array()) as $field)
+		foreach (Arr::get($int_data, 'fields', []) as $field)
 		{
 			$field_id = Arr::get($field, 'key', NULL);
 			$value = Arr::get($field, 'value', '');
@@ -321,7 +321,7 @@ class Integration_Driver_MailerLite extends Integration_Driver implements Integr
 	 */
 	public function get_fields($force_fetch = FALSE)
 	{
-		$fields = Arr::get($this->meta, 'fields', array());
+		$fields = Arr::get($this->meta, 'fields', []);
 		if (empty($fields) OR $force_fetch)
 		{
 			// Get list of fields
@@ -338,7 +338,7 @@ class Integration_Driver_MailerLite extends Integration_Driver implements Integr
 				throw new Integration_Exception(INT_E_WRONG_REQUEST, 'api_key');
 			}
 
-			$this->meta['fields'] = array();
+			$this->meta['fields'] = [];
 			//$this->meta['fields_data'] = array();
 			foreach ($r->data as $item)
 			{
@@ -351,7 +351,7 @@ class Integration_Driver_MailerLite extends Integration_Driver implements Integr
 			}
 		}
 
-		$fields = $this->get_meta('fields', array());
+		$fields = $this->get_meta('fields', []);
 		ksort($fields);
 
 		return $fields;
@@ -367,7 +367,7 @@ class Integration_Driver_MailerLite extends Integration_Driver implements Integr
 	 */
 	public function create_field($name)
 	{
-		$data = array('title' => ucfirst($name));
+		$data = ['title' => ucfirst($name)];
 		// Create field
 		// @link http://developers.mailerlite.com/reference#create-field
 		$r = Integration_Request::factory()
@@ -402,7 +402,7 @@ class Integration_Driver_MailerLite extends Integration_Driver implements Integr
 	 * @param array $subscriber_data
 	 * @throws Integration_Exception
 	 */
-	public function add_group_subscriber($email, $params, $subscriber_data = array())
+	public function add_group_subscriber($email, $params, $subscriber_data = [])
 	{
 		$selected_group = Arr::get($params, 'group_id');
 		if ( ! isset($selected_group))
@@ -410,7 +410,7 @@ class Integration_Driver_MailerLite extends Integration_Driver implements Integr
 			throw new Integration_Exception(INT_E_WRONG_PARAMS);
 		}
 
-		$int_data = $this->translate_subscriber_data_to_int_data($subscriber_data,true);
+		$int_data = $this->translate_subscriber_data_to_int_data($subscriber_data, true);
 
 		// Add new single subscriber to specified group
 		// @link https://developers.mailerlite.com/reference#add-single-subscriber
@@ -420,7 +420,7 @@ class Integration_Driver_MailerLite extends Integration_Driver implements Integr
 			->header('Content-Type', 'application/json')
 			->url($this->get_endpoint().'/groups/'.$selected_group.'/subscribers')
 			->header('X-MailerLite-ApiKey', $this->get_credentials('api_key', ''))
-			->data(array_merge($int_data,[
+			->data(array_merge($int_data, [
 				'email' => $email,
 			]))
 			->log_to($this->requests_log)
@@ -458,7 +458,7 @@ class Integration_Driver_MailerLite extends Integration_Driver implements Integr
 			->log_to($this->requests_log)
 			->execute();
 
-		if ($r->code == 404 AND strpos($r->path('error.message',NULL), 'Subscriber not found') !== FALSE)
+		if ($r->code == 404 AND strpos($r->path('error.message', NULL), 'Subscriber not found') !== FALSE)
 		{
 			return;
 		}
