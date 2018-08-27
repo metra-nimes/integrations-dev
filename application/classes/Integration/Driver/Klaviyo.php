@@ -263,7 +263,7 @@ class Integration_Driver_Klaviyo extends Integration_Driver implements Integrati
 				break;
 			case 409:
 			case 500:
-				throw new Integration_Exception(INT_E_INTERNAL_SERVER_ERROR);
+				throw new Integration_Exception(INT_E_TEMPORARY_ERROR);
 				break;
 			case 503:
 			case 508:
