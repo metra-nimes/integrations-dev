@@ -344,9 +344,6 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 						'rules' => [
 							['in_array', [':value', array_keys($stages)]],
 						],
-						'influence' => [
-							'deal_pipeline',
-						],
 						'placeholder' => TRUE,
 					],
 				],
@@ -365,9 +362,6 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 						'classes' => 'i-refreshable',
 						'rules' => [
 							['in_array', [':value', array_keys($stages)]],
-						],
-						'influence' => [
-							'deal_pipeline',
 						],
 						'placeholder' => TRUE,
 					],
@@ -452,7 +446,8 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 	 */
 	public function create_custom_field($title)
 	{
-		$current_list = $this->meta['current_list'];
+		$current_list = (isset($this->meta['current_list'])) ? $this->meta['current_list'] : NULL;
+
 		foreach ($this->get_meta('custom_fields', []) as $field_id => $field)
 		{
 			if ($field['title'] === $title)
@@ -468,7 +463,7 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 					}
 				}
 				// Attaching current list
-				if ( ! in_array($current_list, $field_lists))
+				if ($current_list != NULL AND ! in_array($current_list, $field_lists))
 				{
 					$field_lists[] = $current_list;
 					// Storing to meta
@@ -490,7 +485,9 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 						'id' => $field_id,
 						'title' => $title,
 						'type' => $field['type'],
-						'p' => array_combine($field_lists, $field_lists),
+						'p' => [
+							'0' => '0'
+						],
 					])
 					->log_to($this->requests_log)
 					->execute();
@@ -533,10 +530,13 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 				'type' => self::$field_types['text'],
 				'req' => 0,
 				// Attaching to all lists
-				'p' => array_combine($lists_ids, $lists_ids),
+				'p' => [
+					'0' => '0'
+				],
 			])
 			->log_to($this->requests_log)
 			->execute();
+
 		if ( ! $r->is_successful())
 		{
 			throw new Integration_Exception(INT_E_WRONG_REQUEST);
@@ -581,18 +581,20 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 	 */
 	public function get_custom_fields($force_fetch = FALSE)
 	{
-		$current_list = $this->meta['current_list'];
+		$current_list = (isset($this->meta['current_list'])) ? $this->meta['current_list'] : NULL;
 
 		if ($force_fetch)
 		{
 			$this->fetch_meta();
 			$this->meta['current_list'] = $current_list;
 		}
-		$current_list_fields = $this->get_meta('lists_custom_fields.'.$current_list, []);
+
+		$current_list_fields = ($current_list != NULL) ? $this->get_meta('lists_custom_fields.'.$current_list, []) : [];
+
 		$result = [];
 		foreach ($this->get_meta('custom_fields', []) as $field_id => $field)
 		{
-			if (in_array($field_id, $current_list_fields))
+			if (($current_list != NULL AND in_array($field_id, $current_list_fields)) OR $current_list === NULL)
 			{
 				$result[$field_id] = mb_strtoupper($field['title']);
 			}
@@ -648,6 +650,7 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 
 		// Preventing outdated cache
 		$custom_fields = $this->get_custom_fields();
+
 		if ($create_missing_custom_fields)
 		{
 			foreach ($custom_fields_data as $f_name => $f_value)
@@ -664,7 +667,7 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 		foreach ($custom_fields_data as $f_name => $f_value)
 		{
 			// Trying to find existing relevant custom field by its title
-			if ( ! ($cf_id = array_search(mb_strtoupper($f_name), $custom_fields, TRUE)))
+			if ( ! ($cf_id = array_search(mb_strtoupper($f_name), $custom_fields, TRUE)) AND isset($this->meta['current_list']) OR ! isset($this->meta['current_list']))
 			{
 				if ( ! $create_missing_custom_fields)
 				{
@@ -741,15 +744,14 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 			->url($this->get_credentials('api_url', '').'/admin/api.php')
 			->header('Content-Type', 'application/x-www-form-urlencoded')
 			->data([
-				'api_action' => 'contact_list',
+				'api_action' => 'contact_view_email',
 				'api_output' => 'json',
-				'filters' => [
-					'email' => $email,
-				],
+				'email' => $email,
 				'api_key' => $this->get_credentials('api_key', ''),
 			])
 			->log_to($this->requests_log)
 			->execute();
+
 		if ( ! $r->is_successful())
 		{
 			throw new Integration_Exception(INT_E_WRONG_REQUEST);
@@ -768,7 +770,8 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 			// Not found
 			return NULL;
 		}
-		$subscriber_data = $this->translate_int_data_to_subscriber_data($r->get('0'));
+
+		$subscriber_data = $this->translate_int_data_to_subscriber_data($r->data);
 
 		return $subscriber_data;
 	}
@@ -826,6 +829,8 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 			]))
 			->log_to($this->requests_log)
 			->execute();
+
+		$this->meta['current_list'] = NULL;
 
 		if ( ! $r->is_successful() OR $r->get('result_code') !== 1)
 		{
@@ -922,11 +927,8 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 			throw new Integration_Exception(INT_E_WRONG_PARAMS);
 		}
 
-		$subscriber = $this->get_subscriber($email);
-		if ($subscriber === NULL)
-		{
-			$this->contact_sync($email);
-		}
+		$int_data = $this->translate_subscriber_data_to_int_data($subscriber_data, TRUE);
+		$this->contact_sync($email, $int_data);
 
 		$action = 'contact_tag_add';
 
@@ -1013,7 +1015,7 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 		}
 	}
 
-	public function add_contact_note($email, $params)
+	public function add_contact_note($email, $params, $subscriber_data)
 	{
 		$note = Arr::get($params, 'text');
 		if ( ! isset($note) OR empty($note))
@@ -1021,8 +1023,10 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 			throw new Integration_Exception(INT_E_WRONG_PARAMS);
 		}
 
-		$subscriber = $this->get_subscriber($email);
-		$subscriber_id = ($subscriber === NULL) ? $this->contact_sync($email) : Arr::path($subscriber, '$integration.id');
+		/*		$subscriber = $this->get_subscriber($email);
+				$subscriber_id = ($subscriber === NULL) ? $this->contact_sync($email) : Arr::path($subscriber, '$integration.id');*/
+		$int_data = $this->translate_subscriber_data_to_int_data($subscriber_data, TRUE);
+		$subscriber_id = $this->contact_sync($email, $int_data);
 
 		if ( ! isset($subscriber_id) OR empty($subscriber_id))
 		{
@@ -1068,7 +1072,7 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 		}
 	}
 
-	public function create_deal($email, $params)
+	public function create_deal($email, $params, $subscriber_data)
 	{
 		$pipeline = Arr::get($params, 'pipeline_id');
 		$stage = Arr::get($params, 'stage_id');
@@ -1077,8 +1081,10 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 			throw new Integration_Exception(INT_E_WRONG_PARAMS);
 		}
 
-		$subscriber = $this->get_subscriber($email);
-		$subscriber_id = ($subscriber === NULL) ? $this->contact_sync($email) : Arr::path($subscriber, '$integration.id');
+		/*$subscriber = $this->get_subscriber($email);
+		$subscriber_id = ($subscriber === NULL) ? $this->contact_sync($email) : Arr::path($subscriber, '$integration.id');*/
+		$int_data = $this->translate_subscriber_data_to_int_data($subscriber_data, TRUE);
+		$subscriber_id = $this->contact_sync($email, $int_data);
 
 		if ( ! isset($subscriber_id) OR empty($subscriber_id))
 		{
@@ -1301,7 +1307,7 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 		}
 	}
 
-	public function create_contact_via_form($email, $params)
+	public function create_contact_via_form($email, $params, $subscriber_data)
 	{
 		$current_form = Arr::get($params, 'form_id');
 		if ( ! isset($current_form) OR empty($current_form))
@@ -1312,9 +1318,10 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 		$subscriber = $this->get_subscriber($email);
 		if ($subscriber === NULL)
 		{
-			$this->contact_sync($email, [
+			$int_data = $this->translate_subscriber_data_to_int_data($subscriber_data, TRUE);
+			$this->contact_sync($email, array_merge($int_data, [
 				'form' => $current_form
-			]);
+			]));
 		}
 	}
 }
