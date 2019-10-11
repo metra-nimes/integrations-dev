@@ -15,18 +15,18 @@ class Integration_Driver_ConvertKit extends Integration_Driver implements Integr
 	public function describe_credentials_fields($refresh = FALSE)
 	{
 		return array(
-			'name' => [
+/*			'name' => [
 				'title' => 'Account Name',
 				'type' => 'text',
 				'description' => 'It\'s an internal value, which can be helpful to identify a specific account in future.',
 				'rules' => [
 					['not_empty'],
 				],
-			],
+			],*/
 			'api_key' => [
 				'title' => 'Account API Key',
 				'type' => 'key',
-				'description' => '<a href="/docs/integrations/convertkit/#step-2-get-your-convertkit-api-key-and-api-secret" target="_blank">Read where to obtain this code</a>',
+				'description' => '<a href="#" target="_blank">Read where to obtain this code</a>',
 				'rules' => [
 					['not_empty'],
 				],

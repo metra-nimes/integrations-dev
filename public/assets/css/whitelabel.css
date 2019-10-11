@@ -1,0 +1,56 @@
+/* Styles for white label */
+.b-body .b-header,
+.b-body .b-header .b-menu-item:hover > .b-menu-list,
+.b-body .b-header .b-switcher:hover .b-switcher-list {
+  background-color: '@wl_background' !important;
+  color: '@wl_header_color';
+}
+.b-body .b-header .b-switcher.type_no-logo {
+  margin-left: -2.5rem;
+}
+.b-body .b-header .b-switcher:hover,
+.b-body .b-header .b-switcher:hover a:hover,
+.b-body .b-header .b-menu-item:hover > a,
+.b-body .b-header .b-menu-item:hover > .b-menu-list,
+.b-body .b-header .b-menu-list a:hover,
+.b-body .b-header .b-menu-list a.active {
+  background-color: rgba(0, 0, 0, 0.1);
+}
+.b-body .b-header a,
+.b-body .b-header a:hover {
+  color: '@wl_header_color' !important;
+}
+.b-body .b-subheader .b-menu-item:hover > a {
+  background-color: '@wl_background' !important;
+  color: '@wl_header_color';
+}
+.b-body.auth-sign_in,
+.b-body.auth-complete_sign_up,
+.b-body.auth-request_password_reset,
+.b-body.auth-reset_password {
+  background: '@wl_background' !important;
+}
+.b-body.auth-sign_in .b-logo img,
+.b-body.auth-complete_sign_up .b-logo img,
+.b-body.auth-request_password_reset .b-logo img,
+.b-body.auth-reset_password .b-logo img {
+  height: 70px;
+}
+.b-body.auth-sign_in .g-form .type_links,
+.b-body.auth-complete_sign_up .g-form .type_links,
+.b-body.auth-request_password_reset .g-form .type_links,
+.b-body.auth-reset_password .g-form .type_links {
+  margin-bottom: -20px;
+}
+.b-body .b-logo {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.b-body .b-logo img {
+  height: 50px;
+}
+.b-body .b-menu-item.has_dropdown > a::after,
+.b-body .b-switcher-current .b-switcher-item::after {
+  border-color: '@wl_header_color' transparent transparent transparent;
+}

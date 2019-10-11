@@ -5,10 +5,10 @@ return array(
 		'title' => 'MailChimp',
 		'ready_for' => Kohana::PRODUCTION,
 	),
-	'Drip' => array(
+/*	'Drip' => array(
 		'title' => 'Drip',
 		'ready_for' => Kohana::PRODUCTION,
-	),
+	),*/
 	'ActiveCampaign' => array(
 		'title' => 'ActiveCampaign',
 		'ready_for' => Kohana::PRODUCTION,

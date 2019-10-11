@@ -15,17 +15,17 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 	public function describe_credentials_fields($refresh = FALSE)
 	{
 		return [
-			'name' => [
+/*			'name' => [
 				'title' => 'Account Name',
 				'description' => 'It\'s an internal value, which can be helpful to identify a specific account in future.',
 				'type' => 'text',
 				'rules' => [
 					['not_empty'],
 				],
-			],
+			],*/
 			'api_url' => [
 				'title' => 'ActiveCampaign Account API URL',
-				'description' => '<a href="/docs/integrations/activecampaign/"  target="_blank">Read where to obtain this code</a>',
+				'description' => '<a href="#"  target="_blank">Read where to obtain this code</a>',
 				'type' => 'text',
 				'rules' => [
 					['not_empty'],
@@ -34,7 +34,7 @@ class Integration_Driver_ActiveCampaign extends Integration_Driver implements In
 			],
 			'api_key' => [
 				'title' => 'ActiveCampaign Account API Key',
-				'description' => '<a href="/docs/integrations/activecampaign/" target="_blank">Read where to obtain this code</a>',
+				'description' => '<a href="#" target="_blank">Read where to obtain this code</a>',
 				'type' => 'key',
 				'rules' => [
 					['not_empty'],

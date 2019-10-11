@@ -1,0 +1,52 @@
+.conv_shortcodes_list {
+	position:absolute;
+	top: 0;
+	left: 0;
+	display: none;
+	margin-top: 18px;
+	background: white;
+	color: black;
+	border: 1px solid #DDD;
+	border-radius: 5px;
+	box-shadow: 0 0 5px rgba(0,0,0,0.1);
+	min-width: 170px;
+	z-index: 11110 !important;
+	overflow-y: auto;
+	overflow-x: hidden;
+}
+.conv_shortcodes_list.is-active {
+	display: block;
+}
+.conv_shortcodes_list ul {
+	margin: 0;
+	padding-left: 0;
+	max-height: 200px;
+	padding-top: 5px;
+	height: auto;
+}
+.conv_shortcodes_list li {
+	list-style-type: none;
+	cursor: pointer;
+	padding: 5px 10px 5px 10px;
+}
+div.conv_shortcodes_list > ul > li.conv_shortcode_item.is_active {
+	background: #e0e1e2;
+}
+.conv_shortcodes_list li span {
+	padding: 2px;
+	border-bottom: 1px dashed;
+}
+.conv_shortcode_value {
+	background: #65bf65;
+	cursor: pointer;
+	border-radius: 7px;
+	padding: 2px;
+}
+.b-builder-preview .conv_shortcode_value {
+	background: none;
+	border-radius: unset;
+	pointer-events: none;
+}
+.b-builder-fieldset .conv_shortcode_error {
+	background: #ffbfbf;
+}

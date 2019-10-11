@@ -47,17 +47,17 @@ class Integration_Driver_MailChimp extends Integration_Driver implements Integra
     public function describe_credentials_fields($refresh = FALSE): array
     {
         return [
-            'name' => [
+/*            'name' => [
                 'title' => 'Account Name',
                 'description' => 'It\'s an internal value, which can be helpful to identify a specific account in future.',
                 'type' => 'text',
                 'rules' => [
                     ['not_empty'],
                 ],
-            ],
+            ],*/
             'api_key' => [
                 'title' => 'Account API Key',
-                'description' => '<a href="/docs/integrations/mailchimp/#step-2-get-your-mailchimp-api-key" target="_blank">Read where to obtain this code</a>',
+                'description' => '<a href="#" target="_blank">Read where to obtain this code</a>',
                 'type' => 'key',
                 'rules' => [
                     ['not_empty'],

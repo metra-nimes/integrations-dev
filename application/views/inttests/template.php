@@ -14,16 +14,17 @@
 <head>
 	<meta charset="UTF-8">
 	<title>Integrations Tests</title>
-	<link type="text/css" href="https://app.convertful.com/assets/css/normalize.css" rel="stylesheet"/>
+	<link type="text/css" href="/assets/css/normalize.css" rel="stylesheet"/>
 	<link type="text/css" href="https://fonts.googleapis.com/css?family=Roboto:400,300,500,700" rel="stylesheet"/>
-	<link type="text/css" href="https://app.convertful.com/assets/css/main.css?v=1.40" rel="stylesheet"/>
-	<link type="text/css" href="https://app.convertful.com/assets/css/cof.css?v=1.40" rel="stylesheet"/>
+	<link type="text/css" href="/assets/css/main.css?v=1.40" rel="stylesheet"/>
+	<link type="text/css" href="/assets/css/cof.css?v=1.40" rel="stylesheet"/>
 	<link type="text/css" href="/assets/inttests/inttests.css" rel="stylesheet"/>
-	<script type="text/javascript" src="https://app.convertful.com/assets/vendor/jquery/jquery-3.1.1.min.js"></script>
-	<script type="text/javascript" src="https://app.convertful.com/assets/vendor/select2/js/select2.full.min.js"></script>
-	<script type="text/javascript" src="https://app.convertful.com/assets/js/base/main.js?v=1.40"></script>
-	<script type="text/javascript" src="https://app.convertful.com/assets/js/base/cof.js?v=1.40"></script>
-	<script type="text/javascript" src="http://app.convertful.com/assets/js/user/integrations.js?v=1.40"></script>
+	<script type="text/javascript" src="/assets/vendor/jquery/jquery-3.1.1.min.js"></script>
+	<script type="text/javascript" src="/assets/vendor/select2/js/select2.full.min.js"></script>
+	<script type="text/javascript" src="/assets/js/base/main.js?v=1.40"></script>
+	<script type="text/javascript" src="/assets/js/base/cof.js?v=1.40"></script>
+	<script type="text/javascript" src="/assets/vendor/jquery/jquery.autocomplete.min.js"></script>
+	<!--<script type="text/javascript" src="http://app.convertful.com/assets/js/user/integrations.js?v=1.40"></script>-->
 	<script type="text/javascript" src="/assets/inttests/inttests.js"></script>
 </head>
 <body>
